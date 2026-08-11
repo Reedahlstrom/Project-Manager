@@ -182,7 +182,7 @@ supabase/
 ## Status
 
 - [x] **Prompt 1** — foundation, PWA, routing, edge config
-- [ ] **Prompt 2** — schema and row-level security
+- [x] **Prompt 2** — schema and row-level security (`npm run test:rls`, 18 checks passing)
 - [ ] Prompt 3 — design system and shell
 - [ ] Prompt 4 — commitments and Today
 

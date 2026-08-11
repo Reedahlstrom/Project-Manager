@@ -8,5 +8,3 @@
 -- SQL editor without also landing here. The migration files are the only record
 -- of why the database looks the way it does, and the RLS policies in particular
 -- need to be reviewable as a diff.
-
-select 1;

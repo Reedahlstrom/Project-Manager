@@ -1,7 +1,10 @@
 # Secrets — never commit. If a key lands in a commit, ROTATE it, don't just delete the line.
-.env
-.env.local
-.env.*.local
+# Deny every .env by default and allow back only the templates, so a new
+# .env.<something> can never be committed by accident. .env.test in particular
+# holds the service role key, which bypasses RLS entirely.
+.env*
+!.env.example
+!.env.test.example
 *.pem
 
 # Dependencies
