@@ -1,0 +1,45 @@
+# Secrets — never commit. If a key lands in a commit, ROTATE it, don't just delete the line.
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Supabase local state
+.supabase
+supabase/.temp
+supabase/.branches
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage
+playwright-report
+test-results
+
+# Exports produced by the backup command (prompt 9)
+exports/

@@ -1,0 +1,3 @@
+# SPA fallback. Cloudflare Pages serves real files first, so this only catches
+# client-side routes like /today and /projects/angel-bac.
+/*  /index.html  200

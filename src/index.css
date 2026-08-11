@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   CADENCE DESIGN TOKENS
+
+   Dark-only. There is no light theme and there is no theme toggle — this is a
+   single-purpose operator's tool used mostly at night and on a phone, and
+   supporting two themes doubles the surface area of every visual decision for
+   no benefit.
+
+   Prompt 3 refines these. Prompt 1 establishes them so nothing downstream
+   hardcodes a hex value.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Surfaces -----------------------------------------------------------
+     Five steps of luminance. Elevation is communicated by lightness, not by
+     shadow — shadows read as mud on a near-black background.
+
+     bg        the page itself; nothing sits behind it
+     surface-1 cards, the sidebar, anything resting directly on the page
+     surface-2 a card inside a card; input fields; table header rows
+     surface-3 hover state for surface-2; popovers and dropdown menus
+     surface-4 the highest thing on screen — dialogs, command palette
+  */
+  --bg: #0a0b0d;
+  --surface-1: #101216;
+  --surface-2: #16191f;
+  --surface-3: #1d2129;
+  --surface-4: #262b35;
+
+  /* --- Borders ------------------------------------------------------------
+     border        the default hairline between regions
+     border-strong focused inputs, selected rows, anything asking for attention
+  */
+  --border: #232833;
+  --border-strong: #333b49;
+
+  /* --- Text ---------------------------------------------------------------
+     Three emphasis levels, no more. Every one clears 4.5:1 on --bg and on
+     --surface-1, so any of them is safe on any surface.
+
+     text      headings, values, anything the eye should land on first
+     text-2    body copy, descriptions, labels
+     text-3    metadata — timestamps, counts, helper text, placeholders
+  */
+  --text: #f2f4f7;
+  --text-2: #a8b0bd;
+  --text-3: #7c8595;
+
+  /* --- Accent -------------------------------------------------------------
+     Exactly one. Used for the primary action, the focus ring, and the active
+     nav item — and nothing else. Deliberately outside the green/amber/red
+     range so it can never be mistaken for a status.
+  */
+  --accent: #4d8df7;
+  --accent-hover: #6ba0f9;
+  --accent-contrast: #06182f;
+  --accent-muted: #4d8df726;
+
+  /* --- Status -------------------------------------------------------------
+     Project health and commitment state. Muted on purpose: saturated status
+     colors on a dark background scream, and if everything screams the genuinely
+     urgent things stop registering. Overdue is the one thing allowed to be loud.
+
+     Each has a -bg tint for badge backgrounds.
+  */
+  --green: #4ca97a;
+  --green-bg: #4ca97a1f;
+  --amber: #d1a04a;
+  --amber-bg: #d1a04a1f;
+  --red: #dd6159;
+  --red-bg: #dd61591f;
+
+  /* --- Typography ---------------------------------------------------------
+     Inter is loaded and the full scale is set in prompt 3. Tabular numerals
+     matter here: dates, counts, and day-overdue figures sit in columns and
+     must not jitter as they change.
+  */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* --- Geometry -----------------------------------------------------------  */
+  --radius: 0.625rem;
+
+  /* --- Motion -------------------------------------------------------------
+     150-250ms ease-out. Applied to state changes and things that genuinely
+     move. Nothing decorative, nothing on page load.
+  */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur: 200ms;
+  --dur-slow: 250ms;
+
+  /* Prose measure — long-form notes cap near 70 characters. */
+  --measure: 70ch;
+}
+
+/* Map the tokens into Tailwind's utility namespace so `bg-surface-1`,
+   `text-text-2`, `border-border` etc. all resolve. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-muted: var(--accent-muted);
+
+  --color-green: var(--green);
+  --color-green-bg: var(--green-bg);
+  --color-amber: var(--amber);
+  --color-amber-bg: var(--amber-bg);
+  --color-red: var(--red);
+  --color-red-bg: var(--red-bg);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-DEFAULT: var(--radius);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Safe areas so the mobile bottom bar clears the home indicator. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Focus that looks deliberate rather than like a browser default. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--accent-muted);
+    color: var(--text);
+  }
+
+  ::placeholder {
+    color: var(--text-3);
+  }
+
+  /* Respect the system setting. Everything animated must survive this. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
