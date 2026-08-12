@@ -18,9 +18,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "./tests/sql/run.sh",
-    "db:types": "supabase gen types typescript --project-id vgsfqcuhiliazgmjznje > src/types/database.ts",
-    "db:push": "supabase db push",
-    "db:diff": "supabase db diff"
+    "db:login": "npx --yes supabase@2 login",
+    "db:link": "npx --yes supabase@2 link --project-ref vgsfqcuhiliazgmjznje",
+    "db:types": "npx --yes supabase@2 gen types typescript --project-id vgsfqcuhiliazgmjznje > src/types/database.ts",
+    "db:push": "npx --yes supabase@2 db push",
+    "db:diff": "npx --yes supabase@2 db diff"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -50,7 +52,6 @@
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
     "prettier": "^3.4.2",
-    "supabase": "^2.113.0",
     "tailwindcss": "^4.0.0",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.19.0",

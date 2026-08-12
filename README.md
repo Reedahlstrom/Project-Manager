@@ -32,6 +32,8 @@ Open http://localhost:5173 — it redirects to `/today`.
 | `npm run typecheck` | Type check without emitting                         |
 | `npm run lint`      | ESLint                                              |
 | `npm run format`    | Prettier write                                      |
+| `npm test`          | Integration tests against real Supabase (needs `.env.test`) |
+| `npm run test:rls`  | RLS policy checks on a local Postgres — no credentials |
 | `npm run db:types`  | Regenerate `src/types/database.ts` from the database |
 | `npm run db:push`   | Apply pending migrations                            |
 
@@ -85,6 +87,24 @@ NODE_VERSION            = 22
 The build will succeed without them but the app will throw on load, because
 `src/lib/supabase.ts` refuses to construct a client with missing config. That is
 deliberate — a silently broken client is worse than a loud one.
+
+### If a Pages build fails
+
+Check these in order — the repo itself builds clean from a fresh clone with no
+environment variables set, verified via `npm ci && npm run build`, so a failure
+is almost always configuration.
+
+1. **Which commit did it build?** The first commit in this repo was a README and
+   nothing else. A build against it fails because there is no `package.json`.
+   Redeploy against `main`.
+2. **Node version.** Cloudflare Pages defaults to Node 18 on older projects.
+   Tailwind v4 and Vite 6 both require Node 20+. `.nvmrc` pins 22 and Pages
+   respects it, but set `NODE_VERSION=22` as well so the two can't disagree.
+3. **Build command and output directory** — `npm run build` and `dist`. If the
+   project was created with no framework preset these may be empty.
+4. **Missing `VITE_*` variables do not fail the build.** They produce a bundle
+   that throws on load instead. If the build is green but the page is blank,
+   that's the cause — check the browser console.
 
 ### Edge configuration in the repo
 
@@ -153,10 +173,16 @@ Do these in the dashboard; they aren't expressible as migrations:
 
 ### Linking the CLI
 
+The Supabase CLI is deliberately **not** a dependency — it ships a downloaded
+platform binary, and a devDependency that fetches a binary at install time is a
+build-time failure waiting to happen on a CI image we don't control. The `db:*`
+scripts fetch it on demand instead.
+
 ```bash
-npx supabase login
-npx supabase link --project-ref vgsfqcuhiliazgmjznje
-npm run db:push
+npm run db:login   # interactive, opens a browser
+npm run db:link
+npm run db:push    # applies supabase/migrations/ in order
+npm run db:types   # regenerates src/types/database.ts
 ```
 
 ---
