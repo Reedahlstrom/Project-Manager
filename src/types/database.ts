@@ -148,6 +148,13 @@ export type CommitmentRow = {
   source_note_id: string | null
   last_nudged_at: string | null
   completed_at: string | null
+  // The cadence of trust. `requested_by` is who gave the commandment (null =
+  // self-directed, nothing owed). `reported_back_at` is when the loop was
+  // closed — deliberately separate from completed_at.
+  requested_by: OwnerType | null
+  requested_by_person_id: string | null
+  reported_back_at: string | null
+  report_note: string | null
   created_by: string | null
   deleted_at: string | null
 } & Timestamps
@@ -351,6 +358,10 @@ export type Database = {
           | 'completed_at'
           | 'created_by'
           | 'deleted_at'
+          | 'requested_by'
+          | 'requested_by_person_id'
+          | 'reported_back_at'
+          | 'report_note'
         >,
         UpdateOf<CommitmentRow>
       >

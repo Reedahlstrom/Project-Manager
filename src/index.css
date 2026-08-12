@@ -1,4 +1,10 @@
+/* Self-hosted. No external font request — the CSP forbids one, and the PWA has
+   to render correctly offline. */
+@import '@fontsource-variable/inter';
 @import 'tailwindcss';
+/* enter/exit utilities (animate-in, fade-in-0, slide-in-from-bottom, …) that
+   Radix's data-[state] attributes drive. Tailwind v4 has no built-in equivalent. */
+@import 'tw-animate-css';
 
 /* ---------------------------------------------------------------------------
    CADENCE DESIGN TOKENS
@@ -80,7 +86,8 @@
      must not jitter as they change.
   */
   --font-sans:
-    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* --- Geometry -----------------------------------------------------------  */
@@ -168,6 +175,58 @@
 
   ::placeholder {
     color: var(--text-3);
+  }
+
+  /* --- Type scale ---------------------------------------------------------
+     Five steps, with real distance between them. A page title has to be
+     unmistakably a page title at a glance on a phone, held at arm's length,
+     in a hurry. Headings are tight-tracked; body is not.
+
+     .t-page     the one h1 on a screen
+     .t-section  a section heading inside a screen ("Chase these")
+     .t-item     a commitment title, a person's name — the thing you act on
+     .t-body     descriptions and prose
+     .t-meta     timestamps, counts, helper text
+  */
+  .t-page {
+    font-size: 1.5rem;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.021em;
+    color: var(--text);
+    text-wrap: balance;
+  }
+
+  .t-section {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .t-item {
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: -0.006em;
+    color: var(--text);
+  }
+
+  .t-body {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-2);
+    max-width: var(--measure);
+    text-wrap: pretty;
+  }
+
+  .t-meta {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
   }
 
   /* Respect the system setting. Everything animated must survive this. */

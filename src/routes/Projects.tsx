@@ -1,10 +1,21 @@
-import { PagePlaceholder } from '@/components/PagePlaceholder'
+import { FolderKanban } from 'lucide-react'
+
+import { EmptyState } from '@/components/EmptyState'
+import { Page } from '@/components/Page'
+import { Button } from '@/components/ui/Button'
 
 export function Projects() {
   return (
-    <PagePlaceholder
-      title="Projects"
-      blurb="Angel Business Advisory Council, Church Media Fund, Church Jobs Fund, Obra, and Systems & Operations — each with its health, its next event, and what's open."
-    />
+    <Page title="Projects">
+      <EmptyState
+        icon={FolderKanban}
+        line="Five projects live here — Angel BAC, the two Church funds, Obra, and Systems & Operations. Each shows its health, its next event, and what's still open."
+        action={
+          <Button variant="primary" size="sm" disabled>
+            Add a project
+          </Button>
+        }
+      />
+    </Page>
   )
 }

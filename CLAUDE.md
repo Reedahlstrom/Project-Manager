@@ -16,6 +16,41 @@ it: Reed, Paul, and Heather. It is not a product, it will never have a signup pa
 and it is not multi-tenant. Every design decision should be made for these three
 people specifically.
 
+## The cornerstone — the cadence of trust
+
+Everything in this application serves one loop:
+
+> **Receive a commandment → do it immediately → report back → receive the next one.**
+
+It is the pattern running through the creation, the brother of Jared, and
+essentially every process in scripture. It is also how trust is actually built:
+not by doing good work, but by doing it fast and closing the loop so the person
+who asked knows it is done.
+
+Three consequences, and they are not negotiable:
+
+1. **Capture must be instant.** A commandment you didn't write down is a
+   commandment you didn't receive. Capture never blocks on the network, never
+   requires a second field, and never takes more than one action.
+2. **Reporting back is a first-class act, not a side effect of completion.**
+   `completed_at` and `reported_back_at` are separate columns because doing the
+   work and saying so are separate events. A commitment that is done but
+   unreported is an open loop, and the app must say so as loudly as an overdue
+   one. This is what the "Report back" list on Today exists for.
+3. **The app is proactive, not only reactive.** It surfaces what should be done
+   next, proposes things unprompted, and notices what has gone quiet. A tool that
+   only answers is a list; the point is a system that pushes.
+
+**The two symmetric lists on Today:**
+
+| List | Meaning |
+| --- | --- |
+| **Chase these** | We are waiting on someone else |
+| **Report back** | Someone else is waiting on us |
+
+The first stops things falling through the cracks. The second is what makes Reed
+trustworthy rather than merely productive. Neither may be buried.
+
 **The four jobs, in priority order:**
 
 1. One comprehensive picture of every project.
@@ -156,6 +191,14 @@ support one of the four jobs, don't add it.
 ---
 
 ## Design language
+
+**This is a workhorse, not a showpiece.** Reed opens it every day and works hard
+in it. Super simple, very clean, minimalist. Nothing exists to be admired. If a
+visual decision doesn't make the tool faster to use or harder to misread, it is
+decoration and it comes out.
+
+The test for any screen: can he see what to do next in under two seconds, and act
+on it in one? Beauty here is the byproduct of restraint, never the goal.
 
 Dark only. There is no light theme and no theme toggle.
 
