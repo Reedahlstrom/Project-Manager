@@ -2,7 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { supabase } from '@/lib/supabase'
-import type { EventRow, Health, PersonRow, ProjectRow } from '@/types/models'
+import type {
+  EventRow,
+  Health,
+  PersonRow,
+  ProjectRow,
+  TablesInsert,
+  TablesUpdate,
+} from '@/types/models'
 
 export function useProjects() {
   return useQuery({
@@ -78,6 +85,58 @@ export function useUpdateProjectHealth() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+}
+
+export function useSaveProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: TablesInsert<'projects'> & { id?: string }) => {
+      if (input.id !== undefined) {
+        const { id, ...rest } = input
+        const { error } = await supabase
+          .from('projects')
+          .update(rest as TablesUpdate<'projects'>)
+          .eq('id', id)
+        if (error) throw error
+        return
+      }
+      const { error } = await supabase.from('projects').insert(input)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+    onError: (error) => {
+      toast.error('That didn’t save', { description: error.message })
+    },
+  })
+}
+
+/**
+ * Soft delete. Nothing with history is ever hard-deleted — the commitments,
+ * notes and decisions underneath a project outlive the decision to stop looking
+ * at it, and un-archiving is one UPDATE.
+ */
+export function useArchiveProject() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('projects')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['projects'] })
+      toast.success('Archived', { description: 'Nothing was deleted.' })
+    },
+    onError: (error) => {
+      toast.error('Could not archive', { description: error.message })
     },
   })
 }

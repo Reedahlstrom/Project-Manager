@@ -1,9 +1,12 @@
-import { CalendarDays, FolderKanban, Lock } from 'lucide-react'
-import { useMemo } from 'react'
+import { CalendarDays, FolderKanban, Lock, Pencil, Plus } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@/components/EmptyState'
 import { Page } from '@/components/Page'
+import { ProjectSheet } from '@/components/projects/ProjectSheet'
 import { Badge, HealthDot } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Select'
 import { useCommitments } from '@/hooks/useCommitments'
@@ -29,6 +32,18 @@ export function Projects() {
   const { data: commitments = [] } = useCommitments()
   const { data: events = [] } = useFutureEvents()
   const updateHealth = useUpdateProjectHealth()
+
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editing, setEditing] = useState<ProjectRow | undefined>(undefined)
+
+  function openNew() {
+    setEditing(undefined)
+    setSheetOpen(true)
+  }
+  function openEdit(project: ProjectRow) {
+    setEditing(project)
+    setSheetOpen(true)
+  }
 
   const byProject = useMemo(() => {
     const today = todayISO()
@@ -61,31 +76,40 @@ export function Projects() {
     )
   }
 
-  if (projects.length === 0) {
-    return (
-      <Page title="Projects">
-        <EmptyState
-          icon={FolderKanban}
-          line="No projects yet. The five seeded ones should be here — if this stays empty you're signed in without a profile row, so the database is returning nothing."
-        />
-      </Page>
-    )
-  }
+  const newButton = (
+    <Button variant="primary" size="sm" onClick={openNew}>
+      <Plus />
+      New project
+    </Button>
+  )
 
   return (
-    <Page title="Projects">
-      <div className="grid gap-3">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            stats={byProject.get(project.id) ?? { open: 0, overdue: 0 }}
-            onHealthChange={(health) => {
-              updateHealth.mutate({ id: project.id, health })
-            }}
-          />
-        ))}
-      </div>
+    <Page title="Projects" action={newButton}>
+      {projects.length === 0 ? (
+        <EmptyState
+          icon={FolderKanban}
+          line="Nothing here. If you expected the five seeded projects, you're signed in without a profile row — the database is returning nothing rather than being empty."
+          action={newButton}
+        />
+      ) : (
+        <div className="grid gap-3">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              stats={byProject.get(project.id) ?? { open: 0, overdue: 0 }}
+              onHealthChange={(health) => {
+                updateHealth.mutate({ id: project.id, health })
+              }}
+              onEdit={() => {
+                openEdit(project)
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <ProjectSheet open={sheetOpen} onOpenChange={setSheetOpen} project={editing} />
     </Page>
   )
 }
@@ -94,10 +118,12 @@ function ProjectCard({
   project,
   stats,
   onHealthChange,
+  onEdit,
 }: {
   project: ProjectRow
   stats: { open: number; overdue: number; next?: EventRow }
   onHealthChange: (health: Health) => void
+  onEdit: () => void
 }) {
   return (
     <Card className="p-4">
@@ -105,7 +131,12 @@ function ProjectCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <HealthDot health={project.health} />
-            <h2 className="t-item">{project.name}</h2>
+            {/* The name opens the project. Editing its settings is the pencil,
+                deliberately secondary — you open a project to work in it, not
+                to rename it. */}
+            <Link to={`/projects/${project.slug}`} className="t-item hover:underline">
+              {project.name}
+            </Link>
             {/* Restricted projects are Reed and Paul only. Saying so on the card
                 means you never have to guess before pasting something in. */}
             {project.sensitivity === 'restricted' ? (
@@ -124,15 +155,20 @@ function ProjectCard({
           ) : null}
         </div>
 
-        <div className="w-44 shrink-0">
-          <Select
-            aria-label={`Health for ${project.name}`}
-            value={project.health}
-            onValueChange={(value) => {
-              onHealthChange(value as Health)
-            }}
-            options={HEALTH_OPTIONS}
-          />
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Edit ${project.name}`}>
+            <Pencil />
+          </Button>
+          <div className="w-44">
+            <Select
+              aria-label={`Health for ${project.name}`}
+              value={project.health}
+              onValueChange={(value) => {
+                onHealthChange(value as Health)
+              }}
+              options={HEALTH_OPTIONS}
+            />
+          </div>
         </div>
       </div>
 

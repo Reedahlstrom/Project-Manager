@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { NotFound } from '@/routes/NotFound'
 import { Paul } from '@/routes/Paul'
 import { People } from '@/routes/People'
+import { ProjectDetail } from '@/routes/ProjectDetail'
 import { Projects } from '@/routes/Projects'
 import { Scorecard } from '@/routes/Scorecard'
 import { SignIn } from '@/routes/SignIn'
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/today" element={<Today />} />
         <Route path="/paul" element={<Paul />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/projects/:slug" element={<ProjectDetail />} />
         <Route path="/people" element={<People />} />
         <Route path="/scorecard" element={<Scorecard />} />
         <Route path="*" element={<NotFound />} />
