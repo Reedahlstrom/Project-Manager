@@ -1,15 +1,10 @@
-import { UserRoundCheck } from 'lucide-react'
-
-import { EmptyState } from '@/components/EmptyState'
+import { NotBuiltYet } from '@/components/NotBuiltYet'
 import { Page } from '@/components/Page'
 
 export function Paul() {
   return (
     <Page title="Paul">
-      <EmptyState
-        icon={UserRoundCheck}
-        line="The three things only Paul can do this week, decisions waiting on him, and one line of health per project. Nothing else — it has to be readable in ninety seconds on a phone."
-      />
+      <NotBuiltYet line="Will show the three things only Paul can do this week, decisions waiting on him, and one line of health per project — readable in ninety seconds on a phone." />
     </Page>
   )
 }
