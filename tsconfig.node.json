@@ -16,7 +16,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node"],
+    // vite/client is needed here as well as in the app config: the unit tests
+    // import app modules, and those read import.meta.env.
+    "types": ["node", "vite/client"],
 
     "baseUrl": ".",
     "paths": {

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -11,14 +11,13 @@ const field = [
   'disabled:opacity-40',
 ].join(' ')
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+// React 19 passes `ref` as an ordinary prop, so no forwardRef wrapper is needed
+// — but the props type has to be the WithRef variant or TypeScript rejects it.
+export function Input({ className, ...props }: ComponentPropsWithRef<'input'>) {
   return <input className={cn(field, 'h-9', className)} {...props} />
 }
 
-export function Textarea({
-  className,
-  ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ className, ...props }: ComponentPropsWithRef<'textarea'>) {
   return <textarea className={cn(field, 'min-h-24 py-2 leading-relaxed', className)} {...props} />
 }
 
@@ -30,7 +29,7 @@ export function Textarea({
  * for free. `[color-scheme:dark]` is what makes the native widget render dark
  * instead of a white rectangle.
  */
-export function DateInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function DateInput({ className, ...props }: ComponentPropsWithRef<'input'>) {
   return (
     <input
       type="date"

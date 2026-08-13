@@ -1,106 +1,358 @@
-import { Inbox, MessageSquareReply, Timer } from 'lucide-react'
+import { CalendarDays, Inbox, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { Page, Section } from '@/components/Page'
-import { Card } from '@/components/ui/Card'
+import { CommitmentItem } from '@/components/today/CommitmentItem'
+import { Button } from '@/components/ui/Button'
+import { Card, Row } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { useAuth } from '@/contexts/auth-context'
+import {
+  partition,
+  useCommitments,
+  useCompleteCommitment,
+  useLogNudge,
+  useReportBack,
+} from '@/hooks/useCommitments'
+import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
+import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
+import { formatEventTime } from '@/lib/dates'
+import type { CommitmentRow } from '@/types/database'
 
 /**
- * Today, structured around the cadence of trust.
+ * Today — the cadence of trust, top to bottom.
  *
- * Capture sits at the very top because receiving the commandment is step one and
- * has to be the fastest thing here.
+ *   Capture       receive the commandment (fastest thing in the app)
+ *   Overdue       what you should already have done
+ *   Due today     what you're doing now
+ *   Chase these   someone owes you
+ *   Report back   someone is waiting to hear from you
  *
- * The two chase lists are peers and neither may be buried:
- *   Chase these  — we are waiting on someone else
- *   Report back  — someone else is waiting on us
- *
- * Prompt 4 wires all of this to real data.
+ * Empty sections collapse to a single line rather than a card, so a quiet day
+ * doesn't cost six screens of scrolling to discover there's nothing to do.
  */
 export function Today() {
+  const { session } = useAuth()
+  const { data: commitments = [], isLoading } = useCommitments()
+  const { data: projects = [] } = useProjects()
+  const { data: inbox = [] } = useInbox()
+  const { data: events = [] } = useUpcomingEvents()
+
+  const capture = useCapture(session?.user.id)
+  const complete = useCompleteCommitment()
+  const nudge = useLogNudge()
+  const reportBack = useReportBack()
+  const dismiss = useDismissInboxItem()
+
+  const [draft, setDraft] = useState('')
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editing, setEditing] = useState<CommitmentRow | undefined>(undefined)
+  const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
+  const captureRef = useRef<HTMLInputElement>(null)
+
+  const projectsById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project])),
+    [projects]
+  )
+  const lists = useMemo(() => partition(commitments), [commitments])
+
+  // One flat ordered list so j/k moves through the screen the way it reads.
+  const focusable = useMemo(
+    () => [...lists.overdue, ...lists.dueToday, ...lists.chase, ...lists.reportBack],
+    [lists]
+  )
+  const [focusIndex, setFocusIndex] = useState(-1)
+
+  const openNew = useCallback((title?: string) => {
+    setEditing(undefined)
+    setSeedTitle(title)
+    setSheetOpen(true)
+  }, [])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const typing =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable === true
+
+      if (event.key === 'Escape') {
+        ;(document.activeElement as HTMLElement | null)?.blur()
+        setFocusIndex(-1)
+        return
+      }
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) return
+
+      if (event.key === 'c') {
+        event.preventDefault()
+        captureRef.current?.focus()
+        return
+      }
+      if (event.key === 'j' || event.key === 'k') {
+        event.preventDefault()
+        setFocusIndex((current) => {
+          const next = event.key === 'j' ? current + 1 : current - 1
+          return Math.max(0, Math.min(next, focusable.length - 1))
+        })
+        return
+      }
+      if (event.key === 'x') {
+        const target_ = focusable[focusIndex]
+        if (target_ && target_.status !== 'done') {
+          event.preventDefault()
+          complete(target_)
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [focusable, focusIndex, complete])
+
+  function onCapture(event: React.SyntheticEvent) {
+    event.preventDefault()
+    const text = draft.trim()
+    if (!text) return
+    // Clear first. The field is empty before the request is even sent.
+    setDraft('')
+    capture.mutate(text)
+  }
+
+  let focusCursor = -1
+  const nextFocusIndex = () => {
+    focusCursor += 1
+    return focusCursor
+  }
+
   return (
-    <Page title="Today">
-      <div className="mb-8">
+    <Page
+      title="Today"
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            openNew()
+          }}
+        >
+          <Plus />
+          New
+        </Button>
+      }
+    >
+      <form onSubmit={onCapture} className="mb-8">
         <Input
+          ref={captureRef}
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value)
+          }}
           placeholder="Capture anything…"
           aria-label="Quick capture"
           className="h-11"
           data-capture-field
         />
-        <p className="mt-1.5 px-1 t-meta">Press C from anywhere. Enter to file it.</p>
-      </div>
+        <p className="mt-1.5 px-1 t-meta">
+          Press <Key>c</Key> from anywhere · <Key>j</Key>/<Key>k</Key> to move ·{' '}
+          <Key>x</Key> to complete
+        </p>
+      </form>
 
-      <Section title="Overdue">
-        <Card className="p-1">
-          <EmptyState compact line="Nothing overdue." />
-        </Card>
-      </Section>
+      {isLoading ? (
+        <p className="t-meta px-3">Loading…</p>
+      ) : (
+        <>
+          <List
+            title="Overdue"
+            items={lists.overdue}
+            emptyLine="Nothing overdue."
+            render={(commitment) => (
+              <CommitmentItem
+                key={commitment.id}
+                commitment={commitment}
+                project={projectsById.get(commitment.project_id)}
+                focused={focusIndex === nextFocusIndex()}
+                variant="overdue"
+                onComplete={() => {
+                  complete(commitment)
+                }}
+                onEdit={() => {
+                  setEditing(commitment)
+                  setSheetOpen(true)
+                }}
+              />
+            )}
+          />
 
-      <Section title="Due today">
-        <Card className="p-1">
-          <EmptyState compact line="Nothing due today." />
-        </Card>
-      </Section>
+          <List
+            title="Due today"
+            items={lists.dueToday}
+            emptyLine="Nothing due today."
+            render={(commitment) => (
+              <CommitmentItem
+                key={commitment.id}
+                commitment={commitment}
+                project={projectsById.get(commitment.project_id)}
+                focused={focusIndex === nextFocusIndex()}
+                onComplete={() => {
+                  complete(commitment)
+                }}
+                onEdit={() => {
+                  setEditing(commitment)
+                  setSheetOpen(true)
+                }}
+              />
+            )}
+          />
 
-      <Section title="Chase these">
-        <Card className="p-1">
-          <EmptyState compact line="Nobody owes you anything right now." />
-        </Card>
-      </Section>
+          <List
+            title="Chase these"
+            items={lists.chase}
+            emptyLine="Nobody owes you anything right now."
+            render={(commitment) => (
+              <CommitmentItem
+                key={commitment.id}
+                commitment={commitment}
+                project={projectsById.get(commitment.project_id)}
+                focused={focusIndex === nextFocusIndex()}
+                variant="chase"
+                onComplete={() => {
+                  complete(commitment)
+                }}
+                onNudge={() => {
+                  nudge.mutate({ id: commitment.id })
+                }}
+                onEdit={() => {
+                  setEditing(commitment)
+                  setSheetOpen(true)
+                }}
+              />
+            )}
+          />
 
-      <Section title="Report back">
-        <Card className="p-1">
-          <EmptyState compact line="Every loop is closed." />
-        </Card>
-      </Section>
+          <List
+            title="Report back"
+            items={lists.reportBack}
+            emptyLine="Every loop is closed."
+            render={(commitment) => (
+              <CommitmentItem
+                key={commitment.id}
+                commitment={commitment}
+                project={projectsById.get(commitment.project_id)}
+                focused={focusIndex === nextFocusIndex()}
+                variant="report"
+                onReportBack={() => {
+                  reportBack.mutate({ id: commitment.id, note: null })
+                }}
+                onEdit={() => {
+                  setEditing(commitment)
+                  setSheetOpen(true)
+                }}
+              />
+            )}
+          />
 
-      <Section title="Next 7 days">
-        <Card className="p-1">
-          <EmptyState compact line="No events scheduled." />
-        </Card>
-      </Section>
+          <Section title="Next 7 days">
+            {events.length === 0 ? (
+              <p className="px-3 t-meta">Nothing scheduled.</p>
+            ) : (
+              <Card className="p-1">
+                {events.map((event) => (
+                  <Row key={event.id} className="items-center">
+                    <CalendarDays className="size-4 shrink-0 text-text-3" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate t-item">{event.title}</span>
+                    <span className="t-meta">
+                      {formatEventTime(event.starts_at, event.timezone)}
+                    </span>
+                  </Row>
+                ))}
+              </Card>
+            )}
+          </Section>
 
-      <Section title="Inbox">
-        <EmptyState
-          icon={Inbox}
-          line="Anything you capture lands here until you turn it into a commitment or throw it away."
-        />
-      </Section>
+          <Section title="Inbox" count={inbox.length}>
+            {inbox.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                line="Anything you capture lands here until you turn it into a commitment or throw it away."
+              />
+            ) : (
+              <Card className="p-1">
+                {inbox.map((item) => (
+                  <Row key={item.id} className="items-center">
+                    <span className="min-w-0 flex-1 t-item">{item.raw_text}</span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        openNew(item.raw_text)
+                        dismiss.mutate(item.id)
+                      }}
+                    >
+                      Make it a commitment
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        dismiss.mutate(item.id)
+                      }}
+                    >
+                      Drop
+                    </Button>
+                  </Row>
+                ))}
+              </Card>
+            )}
+          </Section>
+        </>
+      )}
 
-      {/* Legend for the two mechanisms this screen exists to serve. Removed in
-          prompt 4 once real rows make it self-evident. */}
-      <div className="mt-10 grid gap-3 sm:grid-cols-2">
-        <Legend
-          icon={<Timer className="size-4 text-amber" aria-hidden />}
-          title="Chase these"
-          line="Waiting on someone else, past the follow-up date. One tap logs a nudge and moves the date."
-        />
-        <Legend
-          icon={<MessageSquareReply className="size-4 text-accent" aria-hidden />}
-          title="Report back"
-          line="Done, but the person who asked doesn't know yet. Finishing and saying so are two different acts."
-        />
-      </div>
+      <CommitmentSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        commitment={editing}
+        initialTitle={seedTitle}
+        onSaved={() => {
+          setSeedTitle(undefined)
+        }}
+      />
     </Page>
   )
 }
 
-function Legend({
-  icon,
+/** An empty section collapses to one line. A quiet day should read as quiet. */
+function List({
   title,
-  line,
+  items,
+  emptyLine,
+  render,
 }: {
-  icon: React.ReactNode
   title: string
-  line: string
+  items: CommitmentRow[]
+  emptyLine: string
+  render: (commitment: CommitmentRow) => React.ReactNode
 }) {
   return (
-    <Card className="p-3.5">
-      <div className="mb-1.5 flex items-center gap-2">
-        {icon}
-        <span className="t-item">{title}</span>
-      </div>
-      <p className="text-pretty text-[13px] leading-relaxed text-text-3">{line}</p>
-    </Card>
+    <Section title={title} count={items.length}>
+      {items.length === 0 ? (
+        <p className="px-3 t-meta">{emptyLine}</p>
+      ) : (
+        <Card className="p-1">{items.map(render)}</Card>
+      )}
+    </Section>
+  )
+}
+
+function Key({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-border px-1 font-sans text-[10px] text-text-3">
+      {children}
+    </kbd>
   )
 }

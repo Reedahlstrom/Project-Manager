@@ -14,7 +14,10 @@ export function Select({
   className,
   'aria-label': ariaLabel,
 }: {
-  value?: string
+  // Required, but allowed to be undefined — under `exactOptionalPropertyTypes`
+  // an optional prop cannot receive an explicit undefined, and "nothing selected
+  // yet" is a normal state for a form field.
+  value: string | undefined
   onValueChange?: (value: string) => void
   options: Option[]
   placeholder?: string
