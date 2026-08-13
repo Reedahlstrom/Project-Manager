@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { supabase } from '@/lib/supabase'
-import type { EventRow, PersonRow, ProjectRow } from '@/types/database'
+import type { EventRow, PersonRow, ProjectRow } from '@/types/models'
 
 export function useProjects() {
   return useQuery({

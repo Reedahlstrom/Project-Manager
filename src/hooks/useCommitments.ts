@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 
 import { defaultFollowUp, todayISO } from '@/lib/dates'
 import { supabase } from '@/lib/supabase'
-import type { CommitmentRow, TablesInsert, TablesUpdate } from '@/types/database'
+import type { CommitmentRow, TablesInsert, TablesUpdate } from '@/types/models'
 
 export const COMMITMENTS_KEY = ['commitments'] as const
 

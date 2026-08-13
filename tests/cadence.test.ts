@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 
 import { partition } from '@/hooks/useCommitments'
 import { addBusinessDays, defaultFollowUp, isOverdue, toISO, todayISO } from '@/lib/dates'
-import type { CommitmentRow } from '@/types/database'
+import type { CommitmentRow } from '@/types/models'
 
 const TODAY = todayISO()
 const YESTERDAY = toISO(new Date(Date.now() - 86_400_000))

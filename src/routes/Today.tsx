@@ -19,7 +19,7 @@ import {
 import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
 import { formatEventTime } from '@/lib/dates'
-import type { CommitmentRow } from '@/types/database'
+import type { CommitmentRow } from '@/types/models'
 
 /**
  * Today — the cadence of trust, top to bottom.

@@ -17,7 +17,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/models'
 
 type Client = SupabaseClient<Database>
 

@@ -7,7 +7,7 @@ import { Sheet } from '@/components/ui/Dialog'
 import { usePeople, useProjects } from '@/hooks/useProjects'
 import { useSaveCommitment } from '@/hooks/useCommitments'
 import { defaultFollowUp } from '@/lib/dates'
-import type { CommitmentRow, CommitmentStatus, OwnerType } from '@/types/database'
+import type { CommitmentRow, CommitmentStatus, OwnerType } from '@/types/models'
 
 const OWNERS: { value: OwnerType; label: string }[] = [
   { value: 'me', label: 'Me' },

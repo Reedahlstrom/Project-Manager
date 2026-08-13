@@ -1,453 +1,1076 @@
-/**
- * Database types for Cadence.
- *
- * HAND-WRITTEN, TEMPORARILY. `supabase gen types` requires Docker, which isn't
- * available on this machine. These were written directly against
- * `supabase/migrations/20260811010000_schema_and_rls.sql` and verified by
- * applying that migration to a real Postgres 17.
- *
- * Replace this file with the real thing as soon as the CLI is linked:
- *
- *   npx supabase login
- *   npx supabase link --project-ref vgsfqcuhiliazgmjznje
- *   npm run db:types
- *
- * Known gap until then: `Relationships` is empty on every table, so nested
- * selects (`.select('*, project:projects(*)')`) will not be typed. The row
- * shapes themselves are correct.
- */
-
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
-
-// --- Enums ------------------------------------------------------------------
-
-export type UserRole = 'reed' | 'paul' | 'heather'
-export type Sensitivity = 'standard' | 'sensitive' | 'restricted'
-export type ProjectStatus = 'active' | 'paused' | 'closed'
-export type Health = 'green' | 'amber' | 'red'
-export type Relationship = 'principal' | 'advisor' | 'partner' | 'staff' | 'external'
-export type EventType = 'meeting' | 'convening' | 'launch' | 'deadline'
-export type EventStatus = 'planned' | 'confirmed' | 'done' | 'cancelled'
-export type AttendeeRole = 'host' | 'attendee' | 'speaker' | 'optional'
-export type RsvpStatus = 'unknown' | 'yes' | 'no' | 'tentative'
-export type OwnerType = 'me' | 'paul' | 'heather' | 'external'
-export type CommitmentStatus = 'open' | 'waiting' | 'blocked' | 'done' | 'dropped'
-export type CommitmentSource = 'manual' | 'meeting' | 'import' | 'email' | 'checklist'
-export type MilestoneStatus = 'upcoming' | 'hit' | 'missed' | 'moved'
-export type CommentParent = 'commitment' | 'event' | 'note'
-export type InboxSource = 'quick' | 'email' | 'share'
-
-// --- Row shapes -------------------------------------------------------------
-
-type Timestamps = { created_at: string; updated_at: string }
-
-export type ProfileRow = {
-  id: string
-  name: string
-  role: UserRole
-  email: string
-  avatar_url: string | null
-} & Timestamps
-
-export type ProjectRow = {
-  id: string
-  name: string
-  slug: string
-  purpose: string | null
-  status: ProjectStatus
-  health: Health
-  health_note: string | null
-  sensitivity: Sensitivity
-  sort_order: number
-  deleted_at: string | null
-} & Timestamps
-
-export type PersonRow = {
-  id: string
-  name: string
-  org: string | null
-  title: string | null
-  email: string | null
-  phone: string | null
-  relationship: Relationship
-  how_we_know_them: string | null
-  what_matters_to_them: string | null
-  notes: string | null
-  tags: string[]
-  last_contact_at: string | null
-  next_touch_at: string | null
-  sensitivity: Sensitivity
-  deleted_at: string | null
-} & Timestamps
-
-export type ChecklistTemplateRow = {
-  id: string
-  name: string
-  event_type: EventType | null
-  description: string | null
-} & Timestamps
-
-export type EventRow = {
-  id: string
-  project_id: string
-  title: string
-  type: EventType
-  starts_at: string
-  ends_at: string | null
-  timezone: string
-  location: string | null
-  virtual_link: string | null
-  status: EventStatus
-  agenda: string | null
-  template_id: string | null
-  created_by: string | null
-  deleted_at: string | null
-} & Timestamps
-
-export type EventAttendeeRow = {
-  event_id: string
-  person_id: string
-  role: AttendeeRole
-  rsvp: RsvpStatus
-}
-
-export type NoteRow = {
-  id: string
-  project_id: string | null
-  event_id: string | null
-  person_id: string | null
-  title: string | null
-  body: string
-  author_id: string | null
-  sensitivity: Sensitivity
-  extracted_at: string | null
-  deleted_at: string | null
-} & Timestamps
-
-export type NoteVersionRow = {
-  id: string
-  note_id: string
-  body: string
-  author_id: string | null
-  created_at: string
-}
-
-export type CommitmentRow = {
-  id: string
-  project_id: string
-  event_id: string | null
-  title: string
-  detail: string | null
-  owner_type: OwnerType
-  owner_person_id: string | null
-  due_date: string | null
-  follow_up_date: string | null
-  status: CommitmentStatus
-  blocked_reason: string | null
-  source: CommitmentSource
-  source_note_id: string | null
-  last_nudged_at: string | null
-  completed_at: string | null
-  // The cadence of trust. `requested_by` is who gave the commandment (null =
-  // self-directed, nothing owed). `reported_back_at` is when the loop was
-  // closed — deliberately separate from completed_at.
-  requested_by: OwnerType | null
-  requested_by_person_id: string | null
-  reported_back_at: string | null
-  report_note: string | null
-  created_by: string | null
-  deleted_at: string | null
-} & Timestamps
-
-export type DecisionRow = {
-  id: string
-  project_id: string
-  event_id: string | null
-  statement: string
-  decided_by: string | null
-  decided_at: string
-  rationale: string | null
-  reversible: boolean
-  deleted_at: string | null
-} & Timestamps
-
-export type DocumentRow = {
-  id: string
-  project_id: string | null
-  event_id: string | null
-  name: string
-  storage_path: string
-  mime: string | null
-  size_bytes: number | null
-  uploaded_by: string | null
-  sensitivity: Sensitivity
-  deleted_at: string | null
-} & Timestamps
-
-export type ChecklistItemRow = {
-  id: string
-  template_id: string
-  title: string
-  offset_days: number
-  owner_type: OwnerType
-  category: string | null
-  sort_order: number
-} & Timestamps
-
-export type MilestoneRow = {
-  id: string
-  project_id: string
-  title: string
-  target_date: string | null
-  status: MilestoneStatus
-} & Timestamps
-
-export type CommentRow = {
-  id: string
-  parent_type: CommentParent
-  parent_id: string
-  author_id: string | null
-  body: string
-  created_at: string
-}
-
-export type InboxItemRow = {
-  id: string
-  raw_text: string
-  source: InboxSource
-  processed: boolean
-  created_by: string | null
-  created_at: string
-}
-
-export type DigestRow = {
-  id: string
-  period_start: string
-  period_end: string
-  body: string
-  sent_at: string | null
-  recipients: string[]
-  created_at: string
-}
-
-export type AuditLogRow = {
-  id: number
-  actor_id: string | null
-  action: string
-  table_name: string
-  row_id: string | null
-  at: string
-  ip: string | null
-}
-
-// --- Insert/Update derivation ------------------------------------------------
-// Columns with a database default are optional on insert. `id`, `created_at`
-// and `updated_at` always are.
-
-type Generated = 'id' | 'created_at' | 'updated_at'
-
-type InsertOf<T, Optional extends keyof T = never> = Omit<T, Extract<Generated, keyof T>> extends
-  infer R
-  ? Omit<R, Extract<Optional, keyof R>> & Partial<Pick<T, Extract<Optional | Generated, keyof T>>>
-  : never
-
-type UpdateOf<T> = Partial<T>
-
-type Table<Row, Insert, Update> = {
-  Row: Row
-  Insert: Insert
-  Update: Update
-  Relationships: []
-}
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
-  public: {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.15"
+  }
+  graphql_public: {
     Tables: {
-      profiles: Table<ProfileRow, InsertOf<ProfileRow, 'avatar_url'>, UpdateOf<ProfileRow>>
-      projects: Table<
-        ProjectRow,
-        InsertOf<
-          ProjectRow,
-          'purpose' | 'status' | 'health' | 'health_note' | 'sensitivity' | 'sort_order' | 'deleted_at'
-        >,
-        UpdateOf<ProjectRow>
-      >
-      people: Table<
-        PersonRow,
-        InsertOf<
-          PersonRow,
-          | 'org'
-          | 'title'
-          | 'email'
-          | 'phone'
-          | 'relationship'
-          | 'how_we_know_them'
-          | 'what_matters_to_them'
-          | 'notes'
-          | 'tags'
-          | 'last_contact_at'
-          | 'next_touch_at'
-          | 'sensitivity'
-          | 'deleted_at'
-        >,
-        UpdateOf<PersonRow>
-      >
-      checklist_templates: Table<
-        ChecklistTemplateRow,
-        InsertOf<ChecklistTemplateRow, 'event_type' | 'description'>,
-        UpdateOf<ChecklistTemplateRow>
-      >
-      events: Table<
-        EventRow,
-        InsertOf<
-          EventRow,
-          | 'type'
-          | 'ends_at'
-          | 'timezone'
-          | 'location'
-          | 'virtual_link'
-          | 'status'
-          | 'agenda'
-          | 'template_id'
-          | 'created_by'
-          | 'deleted_at'
-        >,
-        UpdateOf<EventRow>
-      >
-      event_attendees: Table<
-        EventAttendeeRow,
-        Omit<EventAttendeeRow, 'role' | 'rsvp'> & Partial<Pick<EventAttendeeRow, 'role' | 'rsvp'>>,
-        UpdateOf<EventAttendeeRow>
-      >
-      notes: Table<
-        NoteRow,
-        InsertOf<
-          NoteRow,
-          | 'project_id'
-          | 'event_id'
-          | 'person_id'
-          | 'title'
-          | 'body'
-          | 'author_id'
-          | 'sensitivity'
-          | 'extracted_at'
-          | 'deleted_at'
-        >,
-        UpdateOf<NoteRow>
-      >
-      note_versions: Table<
-        NoteVersionRow,
-        InsertOf<NoteVersionRow, 'author_id'>,
-        UpdateOf<NoteVersionRow>
-      >
-      commitments: Table<
-        CommitmentRow,
-        InsertOf<
-          CommitmentRow,
-          | 'event_id'
-          | 'detail'
-          | 'owner_type'
-          | 'owner_person_id'
-          | 'due_date'
-          | 'follow_up_date'
-          | 'status'
-          | 'blocked_reason'
-          | 'source'
-          | 'source_note_id'
-          | 'last_nudged_at'
-          | 'completed_at'
-          | 'created_by'
-          | 'deleted_at'
-          | 'requested_by'
-          | 'requested_by_person_id'
-          | 'reported_back_at'
-          | 'report_note'
-        >,
-        UpdateOf<CommitmentRow>
-      >
-      decisions: Table<
-        DecisionRow,
-        InsertOf<
-          DecisionRow,
-          'event_id' | 'decided_by' | 'decided_at' | 'rationale' | 'reversible' | 'deleted_at'
-        >,
-        UpdateOf<DecisionRow>
-      >
-      documents: Table<
-        DocumentRow,
-        InsertOf<
-          DocumentRow,
-          | 'project_id'
-          | 'event_id'
-          | 'mime'
-          | 'size_bytes'
-          | 'uploaded_by'
-          | 'sensitivity'
-          | 'deleted_at'
-        >,
-        UpdateOf<DocumentRow>
-      >
-      checklist_items: Table<
-        ChecklistItemRow,
-        InsertOf<ChecklistItemRow, 'offset_days' | 'owner_type' | 'category' | 'sort_order'>,
-        UpdateOf<ChecklistItemRow>
-      >
-      milestones: Table<
-        MilestoneRow,
-        InsertOf<MilestoneRow, 'target_date' | 'status'>,
-        UpdateOf<MilestoneRow>
-      >
-      comments: Table<CommentRow, InsertOf<CommentRow, 'author_id'>, UpdateOf<CommentRow>>
-      inbox_items: Table<
-        InboxItemRow,
-        InsertOf<InboxItemRow, 'source' | 'processed' | 'created_by'>,
-        UpdateOf<InboxItemRow>
-      >
-      digests: Table<
-        DigestRow,
-        InsertOf<DigestRow, 'sent_at' | 'recipients'>,
-        UpdateOf<DigestRow>
-      >
-      audit_log: Table<
-        AuditLogRow,
-        Omit<AuditLogRow, 'id' | 'at'> & Partial<Pick<AuditLogRow, 'id' | 'at'>>,
-        never
-      >
+      [_ in never]: never
     }
-    Views: Record<never, never>
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      current_user_role: { Args: Record<PropertyKey, never>; Returns: UserRole }
-      is_privileged: { Args: Record<PropertyKey, never>; Returns: boolean }
-      is_member: { Args: Record<PropertyKey, never>; Returns: boolean }
-      project_is_restricted: { Args: { p_project_id: string }; Returns: boolean }
-      can_access_project: { Args: { p_project_id: string }; Returns: boolean }
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      user_role: UserRole
-      sensitivity: Sensitivity
-      project_status: ProjectStatus
-      health: Health
-      relationship: Relationship
-      event_type: EventType
-      event_status: EventStatus
-      attendee_role: AttendeeRole
-      rsvp_status: RsvpStatus
-      owner_type: OwnerType
-      commitment_status: CommitmentStatus
-      commitment_source: CommitmentSource
-      milestone_status: MilestoneStatus
-      comment_parent: CommentParent
-      inbox_source: InboxSource
+      [_ in never]: never
     }
-    CompositeTypes: Record<never, never>
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          at: string
+          id: number
+          ip: unknown
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          at?: string
+          id?: number
+          ip?: unknown
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          at?: string
+          id?: number
+          ip?: unknown
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          offset_days: number
+          owner_type: Database["public"]["Enums"]["owner_type"]
+          sort_order: number
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          offset_days?: number
+          owner_type?: Database["public"]["Enums"]["owner_type"]
+          sort_order?: number
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          offset_days?: number
+          owner_type?: Database["public"]["Enums"]["owner_type"]
+          sort_order?: number
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: Database["public"]["Enums"]["event_type"] | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["event_type"] | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["event_type"] | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          parent_id: string
+          parent_type: Database["public"]["Enums"]["comment_parent"]
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          parent_id: string
+          parent_type: Database["public"]["Enums"]["comment_parent"]
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          parent_id?: string
+          parent_type?: Database["public"]["Enums"]["comment_parent"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commitments: {
+        Row: {
+          blocked_reason: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          detail: string | null
+          due_date: string | null
+          event_id: string | null
+          follow_up_date: string | null
+          id: string
+          last_nudged_at: string | null
+          owner_person_id: string | null
+          owner_type: Database["public"]["Enums"]["owner_type"]
+          project_id: string
+          report_note: string | null
+          reported_back_at: string | null
+          requested_by: Database["public"]["Enums"]["owner_type"] | null
+          requested_by_person_id: string | null
+          source: Database["public"]["Enums"]["commitment_source"]
+          source_note_id: string | null
+          status: Database["public"]["Enums"]["commitment_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          detail?: string | null
+          due_date?: string | null
+          event_id?: string | null
+          follow_up_date?: string | null
+          id?: string
+          last_nudged_at?: string | null
+          owner_person_id?: string | null
+          owner_type?: Database["public"]["Enums"]["owner_type"]
+          project_id: string
+          report_note?: string | null
+          reported_back_at?: string | null
+          requested_by?: Database["public"]["Enums"]["owner_type"] | null
+          requested_by_person_id?: string | null
+          source?: Database["public"]["Enums"]["commitment_source"]
+          source_note_id?: string | null
+          status?: Database["public"]["Enums"]["commitment_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          detail?: string | null
+          due_date?: string | null
+          event_id?: string | null
+          follow_up_date?: string | null
+          id?: string
+          last_nudged_at?: string | null
+          owner_person_id?: string | null
+          owner_type?: Database["public"]["Enums"]["owner_type"]
+          project_id?: string
+          report_note?: string | null
+          reported_back_at?: string | null
+          requested_by?: Database["public"]["Enums"]["owner_type"] | null
+          requested_by_person_id?: string | null
+          source?: Database["public"]["Enums"]["commitment_source"]
+          source_note_id?: string | null
+          status?: Database["public"]["Enums"]["commitment_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commitments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_requested_by_person_id_fkey"
+            columns: ["requested_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decisions: {
+        Row: {
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          deleted_at: string | null
+          event_id: string | null
+          id: string
+          project_id: string
+          rationale: string | null
+          reversible: boolean
+          statement: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string
+          project_id: string
+          rationale?: string | null
+          reversible?: boolean
+          statement: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string
+          project_id?: string
+          rationale?: string | null
+          reversible?: boolean
+          statement?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      digests: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+          recipients: string[]
+          sent_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+          recipients?: string[]
+          sent_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          recipients?: string[]
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          event_id: string | null
+          id: string
+          mime: string | null
+          name: string
+          project_id: string | null
+          sensitivity: Database["public"]["Enums"]["sensitivity"]
+          size_bytes: number | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string
+          mime?: string | null
+          name: string
+          project_id?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          size_bytes?: number | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          id?: string
+          mime?: string | null
+          name?: string
+          project_id?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          size_bytes?: number | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_attendees: {
+        Row: {
+          event_id: string
+          person_id: string
+          role: Database["public"]["Enums"]["attendee_role"]
+          rsvp: Database["public"]["Enums"]["rsvp_status"]
+        }
+        Insert: {
+          event_id: string
+          person_id: string
+          role?: Database["public"]["Enums"]["attendee_role"]
+          rsvp?: Database["public"]["Enums"]["rsvp_status"]
+        }
+        Update: {
+          event_id?: string
+          person_id?: string
+          role?: Database["public"]["Enums"]["attendee_role"]
+          rsvp?: Database["public"]["Enums"]["rsvp_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          agenda: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          ends_at: string | null
+          id: string
+          location: string | null
+          project_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
+          template_id: string | null
+          timezone: string
+          title: string
+          type: Database["public"]["Enums"]["event_type"]
+          updated_at: string
+          virtual_link: string | null
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          project_id: string
+          starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
+          template_id?: string | null
+          timezone?: string
+          title: string
+          type?: Database["public"]["Enums"]["event_type"]
+          updated_at?: string
+          virtual_link?: string | null
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          ends_at?: string | null
+          id?: string
+          location?: string | null
+          project_id?: string
+          starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          template_id?: string | null
+          timezone?: string
+          title?: string
+          type?: Database["public"]["Enums"]["event_type"]
+          updated_at?: string
+          virtual_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          processed: boolean
+          raw_text: string
+          source: Database["public"]["Enums"]["inbox_source"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          processed?: boolean
+          raw_text: string
+          source?: Database["public"]["Enums"]["inbox_source"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          processed?: boolean
+          raw_text?: string
+          source?: Database["public"]["Enums"]["inbox_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbox_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestones: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          status: Database["public"]["Enums"]["milestone_status"]
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: Database["public"]["Enums"]["milestone_status"]
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: Database["public"]["Enums"]["milestone_status"]
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_versions: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          note_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          note_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_versions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_versions_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          event_id: string | null
+          extracted_at: string | null
+          id: string
+          person_id: string | null
+          project_id: string | null
+          sensitivity: Database["public"]["Enums"]["sensitivity"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          extracted_at?: string | null
+          id?: string
+          person_id?: string | null
+          project_id?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          event_id?: string | null
+          extracted_at?: string | null
+          id?: string
+          person_id?: string | null
+          project_id?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          how_we_know_them: string | null
+          id: string
+          last_contact_at: string | null
+          name: string
+          next_touch_at: string | null
+          notes: string | null
+          org: string | null
+          phone: string | null
+          relationship: Database["public"]["Enums"]["relationship"]
+          sensitivity: Database["public"]["Enums"]["sensitivity"]
+          tags: string[]
+          title: string | null
+          updated_at: string
+          what_matters_to_them: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          how_we_know_them?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name: string
+          next_touch_at?: string | null
+          notes?: string | null
+          org?: string | null
+          phone?: string | null
+          relationship?: Database["public"]["Enums"]["relationship"]
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          what_matters_to_them?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          how_we_know_them?: string | null
+          id?: string
+          last_contact_at?: string | null
+          name?: string
+          next_touch_at?: string | null
+          notes?: string | null
+          org?: string | null
+          phone?: string | null
+          relationship?: Database["public"]["Enums"]["relationship"]
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          what_matters_to_them?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          health: Database["public"]["Enums"]["health"]
+          health_note: string | null
+          id: string
+          name: string
+          purpose: string | null
+          sensitivity: Database["public"]["Enums"]["sensitivity"]
+          slug: string
+          sort_order: number
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          health?: Database["public"]["Enums"]["health"]
+          health_note?: string | null
+          id?: string
+          name: string
+          purpose?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          slug: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          health?: Database["public"]["Enums"]["health"]
+          health_note?: string | null
+          id?: string
+          name?: string
+          purpose?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          slug?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      can_access_project: { Args: { p_project_id: string }; Returns: boolean }
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_member: { Args: never; Returns: boolean }
+      is_privileged: { Args: never; Returns: boolean }
+      project_is_restricted: {
+        Args: { p_project_id: string }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      attendee_role: "host" | "attendee" | "speaker" | "optional"
+      comment_parent: "commitment" | "event" | "note"
+      commitment_source: "manual" | "meeting" | "import" | "email" | "checklist"
+      commitment_status: "open" | "waiting" | "blocked" | "done" | "dropped"
+      event_status: "planned" | "confirmed" | "done" | "cancelled"
+      event_type: "meeting" | "convening" | "launch" | "deadline"
+      health: "green" | "amber" | "red"
+      inbox_source: "quick" | "email" | "share"
+      milestone_status: "upcoming" | "hit" | "missed" | "moved"
+      owner_type: "me" | "paul" | "heather" | "external"
+      project_status: "active" | "paused" | "closed"
+      relationship: "principal" | "advisor" | "partner" | "staff" | "external"
+      rsvp_status: "unknown" | "yes" | "no" | "tentative"
+      sensitivity: "standard" | "sensitive" | "restricted"
+      user_role: "reed" | "paul" | "heather"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// --- Convenience -------------------------------------------------------------
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row']
-export type TablesInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert']
-export type TablesUpdate<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update']
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      attendee_role: ["host", "attendee", "speaker", "optional"],
+      comment_parent: ["commitment", "event", "note"],
+      commitment_source: ["manual", "meeting", "import", "email", "checklist"],
+      commitment_status: ["open", "waiting", "blocked", "done", "dropped"],
+      event_status: ["planned", "confirmed", "done", "cancelled"],
+      event_type: ["meeting", "convening", "launch", "deadline"],
+      health: ["green", "amber", "red"],
+      inbox_source: ["quick", "email", "share"],
+      milestone_status: ["upcoming", "hit", "missed", "moved"],
+      owner_type: ["me", "paul", "heather", "external"],
+      project_status: ["active", "paused", "closed"],
+      relationship: ["principal", "advisor", "partner", "staff", "external"],
+      rsvp_status: ["unknown", "yes", "no", "tentative"],
+      sensitivity: ["standard", "sensitive", "restricted"],
+      user_role: ["reed", "paul", "heather"],
+    },
+  },
+} as const

@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { createContext, use } from 'react'
 
-import type { ProfileRow } from '@/types/database'
+import type { ProfileRow } from '@/types/models'
 
 export type AuthState = {
   session: Session | null

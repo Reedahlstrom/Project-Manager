@@ -6,7 +6,7 @@ import { Row } from '@/components/ui/Card'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { daysSince, relativeDays } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import type { CommitmentRow, ProjectRow } from '@/types/database'
+import type { CommitmentRow, ProjectRow } from '@/types/models'
 
 const OWNER_LABEL: Record<string, string> = {
   me: 'Me',

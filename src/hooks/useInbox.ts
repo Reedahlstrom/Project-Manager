@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { supabase } from '@/lib/supabase'
-import type { InboxItemRow } from '@/types/database'
+import type { InboxItemRow } from '@/types/models'
 
 const INBOX_KEY = ['inbox'] as const
 
