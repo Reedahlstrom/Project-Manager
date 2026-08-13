@@ -29,12 +29,14 @@ export function CommitmentSheet({
   onOpenChange,
   commitment,
   initialTitle,
+  initialDetail,
   onSaved,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   commitment?: CommitmentRow | undefined
   initialTitle?: string | undefined
+  initialDetail?: string | undefined
   onSaved?: (() => void) | undefined
 }) {
   const { data: projects = [] } = useProjects()
@@ -54,7 +56,7 @@ export function CommitmentSheet({
   useEffect(() => {
     if (!open) return
     setTitle(commitment?.title ?? initialTitle ?? '')
-    setDetail(commitment?.detail ?? '')
+    setDetail(commitment?.detail ?? initialDetail ?? '')
     setProjectId(commitment?.project_id ?? projects[0]?.id)
     setOwnerType(commitment?.owner_type ?? 'me')
     setOwnerPersonId(commitment?.owner_person_id ?? undefined)
@@ -62,7 +64,7 @@ export function CommitmentSheet({
     setDueDate(commitment?.due_date ?? '')
     setFollowUp(commitment?.follow_up_date ?? '')
     setStatus(commitment?.status ?? 'open')
-  }, [open, commitment, initialTitle, projects])
+  }, [open, commitment, initialTitle, initialDetail, projects])
 
   // A waiting commitment with no follow-up date is exactly the thing that falls
   // through the cracks. The database refuses to store one; the form fills it in

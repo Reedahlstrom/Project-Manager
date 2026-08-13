@@ -35,6 +35,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Take over immediately instead of waiting for every tab to close.
+        // Without these a deploy is invisible until a hard refresh, which means
+        // you spend a day looking at a version that no longer exists.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // Offline app shell. Navigation requests fall back to index.html so the
         // SPA boots without a network round trip.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],

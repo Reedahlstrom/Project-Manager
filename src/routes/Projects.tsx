@@ -127,8 +127,11 @@ function ProjectCard({
 }) {
   return (
     <Card className="p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      {/* No flex-wrap. With it, a project whose purpose runs long pushed the
+          health control onto its own line while short ones kept it on the
+          right — the same control in two places depending on the text. */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <HealthDot health={project.health} />
             {/* The name opens the project. Editing its settings is the pencil,

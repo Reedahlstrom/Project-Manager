@@ -39,6 +39,7 @@ export function ProjectDetail() {
   const [commitmentSheet, setCommitmentSheet] = useState(false)
   const [editingCommitment, setEditingCommitment] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
+  const [seedDetail, setSeedDetail] = useState<string | undefined>(undefined)
 
   const commitments = useMemo(
     () => allCommitments.filter((c) => c.project_id === project?.id),
@@ -111,6 +112,8 @@ export function ProjectDetail() {
                 onFollowUp={() => {
                   setEditingCommitment(undefined)
                   setSeedTitle(followUpTitle(note))
+                  // The note itself is the context for the follow-up.
+                  setSeedDetail(note.body)
                   setCommitmentSheet(true)
                 }}
               />
@@ -134,6 +137,7 @@ export function ProjectDetail() {
                 onEdit={() => {
                   setEditingCommitment(c)
                   setSeedTitle(undefined)
+                  setSeedDetail(undefined)
                   setCommitmentSheet(true)
                 }}
               />
@@ -147,6 +151,7 @@ export function ProjectDetail() {
             onClick={() => {
               setEditingCommitment(undefined)
               setSeedTitle(undefined)
+              setSeedDetail(undefined)
               setCommitmentSheet(true)
             }}
           >
@@ -182,15 +187,32 @@ export function ProjectDetail() {
         onOpenChange={setCommitmentSheet}
         commitment={editingCommitment}
         initialTitle={seedTitle}
+        initialDetail={seedDetail}
       />
     </div>
   )
 }
 
-/** First line of the note, trimmed — a sensible starting title to edit down. */
+/**
+ * A short, editable starting title.
+ *
+ * Taking the note's "first line" was wrong: a note written as a paragraph has
+ * exactly one line, so the title became the whole note. Prefer an explicit
+ * title, then the first sentence, then a word-boundary trim — and put the full
+ * note in the detail field where the context is actually useful.
+ */
+const MAX_TITLE = 70
+
 function followUpTitle(note: NoteRow) {
-  const first = (note.title ?? note.body).split('\n')[0]?.trim() ?? ''
-  return first.length > 90 ? `${first.slice(0, 90)}…` : first
+  if (note.title?.trim()) return note.title.trim()
+
+  const firstLine = note.body.split('\n')[0]?.trim() ?? ''
+  const sentence = /^(.+?[.!?])(\s|$)/.exec(firstLine)?.[1]?.trim() ?? firstLine
+  if (sentence.length <= MAX_TITLE) return sentence
+
+  const clipped = sentence.slice(0, MAX_TITLE)
+  const lastSpace = clipped.lastIndexOf(' ')
+  return `${(lastSpace > 40 ? clipped.slice(0, lastSpace) : clipped).trim()}…`
 }
 
 function BackLink() {
