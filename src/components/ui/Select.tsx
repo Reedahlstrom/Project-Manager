@@ -57,7 +57,9 @@ export function Select({
           sideOffset={4}
           className={cn(
             'z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden',
-            'rounded-lg border border-border bg-surface-3 p-1 shadow-xl shadow-black/40'
+            // White with a border and shadow. On a light ground a popover has to
+            // sit above the page, not be a grey patch on it.
+            'rounded-lg border border-border bg-surface-4 p-1 shadow-[var(--shadow-pop)]'
           )}
         >
           <RadixSelect.Viewport>
@@ -68,7 +70,7 @@ export function Select({
                 className={cn(
                   'relative flex cursor-default select-none items-center rounded-md',
                   'py-1.5 pl-7 pr-2 text-sm text-text-2 outline-none',
-                  'data-[highlighted]:bg-surface-4 data-[highlighted]:text-text',
+                  'data-[highlighted]:bg-surface-2 data-[highlighted]:text-text',
                   'data-[state=checked]:text-text'
                 )}
               >

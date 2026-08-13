@@ -19,7 +19,7 @@ export function AppShell() {
       <div className="min-h-dvh bg-bg text-text">
         <aside className="fixed inset-y-0 left-0 z-20 hidden w-56 flex-col border-r border-border bg-surface-1 md:flex">
           <div className="px-4 pb-4 pt-6">
-            <p className="text-sm font-semibold tracking-tight text-text">Cadence</p>
+            <p className="text-sm font-semibold tracking-tight text-text">Mega Projects</p>
             <p className="mt-0.5 t-meta">Alta Labs</p>
           </div>
 

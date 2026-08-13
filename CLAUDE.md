@@ -200,10 +200,11 @@ decoration and it comes out.
 The test for any screen: can he see what to do next in under two seconds, and act
 on it in one? Beauty here is the byproduct of restraint, never the goal.
 
-Dark only. There is no light theme and no theme toggle.
+Light only. There is no dark theme and no theme toggle.
 
-- Base background near `#0A0B0D`, with four surface steps rising in luminance.
-  Elevation is communicated by lightness, never by shadow.
+- Soft grey page near `#F7F8FA`, with cards rising to white. On a light ground
+  elevation cannot be signalled by lightness alone, so floating surfaces get a
+  hairline border plus a soft shadow.
 - Three text emphasis levels. All clear 4.5:1.
 - **Exactly one accent color**, deliberately outside the green/amber/red range so it
   can never be mistaken for a status. It is used for the primary action, the focus

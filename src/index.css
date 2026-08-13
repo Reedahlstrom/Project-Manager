@@ -7,23 +7,23 @@
 @import 'tw-animate-css';
 
 /* ---------------------------------------------------------------------------
-   CADENCE DESIGN TOKENS
+   ALTA LABS MEGA PROJECTS — DESIGN TOKENS
 
-   Dark-only. There is no light theme and there is no theme toggle — this is a
-   single-purpose operator's tool used mostly at night and on a phone, and
-   supporting two themes doubles the surface area of every visual decision for
-   no benefit.
+   Light-only. There is no dark theme and no theme toggle — one theme is half
+   the visual decisions to get right, and this is a workhorse used in daylight.
 
-   Prompt 3 refines these. Prompt 1 establishes them so nothing downstream
-   hardcodes a hex value.
+   Everything downstream reads these variables and never a hex value, which is
+   why swapping the whole app from dark to light was this block and nothing
+   else.
    --------------------------------------------------------------------------- */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* --- Surfaces -----------------------------------------------------------
-     Five steps of luminance. Elevation is communicated by lightness, not by
-     shadow — shadows read as mud on a near-black background.
+     On a light ground you can't signal elevation with lightness alone — white
+     is the ceiling. So cards go *up* to white against a soft grey page, and
+     anything floating gets a hairline border plus a soft shadow.
 
      bg        the page itself; nothing sits behind it
      surface-1 cards, the sidebar, anything resting directly on the page
@@ -31,18 +31,18 @@
      surface-3 hover state for surface-2; popovers and dropdown menus
      surface-4 the highest thing on screen — dialogs, command palette
   */
-  --bg: #0a0b0d;
-  --surface-1: #101216;
-  --surface-2: #16191f;
-  --surface-3: #1d2129;
-  --surface-4: #262b35;
+  --bg: #f7f8fa;
+  --surface-1: #ffffff;
+  --surface-2: #f2f4f7;
+  --surface-3: #e8ebf0;
+  --surface-4: #ffffff;
 
   /* --- Borders ------------------------------------------------------------
      border        the default hairline between regions
      border-strong focused inputs, selected rows, anything asking for attention
   */
-  --border: #232833;
-  --border-strong: #333b49;
+  --border: #e4e7ec;
+  --border-strong: #c4cad4;
 
   /* --- Text ---------------------------------------------------------------
      Three emphasis levels, no more. Every one clears 4.5:1 on --bg and on
@@ -52,23 +52,30 @@
      text-2    body copy, descriptions, labels
      text-3    metadata — timestamps, counts, helper text, placeholders
   */
-  --text: #f2f4f7;
-  --text-2: #a8b0bd;
-  --text-3: #7c8595;
+  --text: #14171c;
+  --text-2: #4a515e;
+  --text-3: #667085;
 
   /* --- Accent -------------------------------------------------------------
      Exactly one. Used for the primary action, the focus ring, and the active
      nav item — and nothing else. Deliberately outside the green/amber/red
      range so it can never be mistaken for a status.
+
+     Darker than the dark-theme accent was: white text on it has to clear 4.5:1,
+     and a lighter blue does not.
   */
-  --accent: #4d8df7;
-  --accent-hover: #6ba0f9;
-  --accent-contrast: #06182f;
-  --accent-muted: #4d8df726;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-contrast: #ffffff;
+  --accent-muted: #2563eb14;
+
+  /* Floating surfaces need a real shadow on light, not a luminance step. */
+  --shadow-pop: 0 4px 12px -2px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.06);
+  --shadow-modal: 0 20px 40px -8px rgb(16 24 40 / 0.18), 0 8px 16px -8px rgb(16 24 40 / 0.1);
 
   /* --- Status -------------------------------------------------------------
      Project health and commitment state. Muted on purpose: saturated status
-     colors on a dark background scream, and if everything screams the genuinely
+     colors scream against a plain background, and if everything screams the genuinely
      urgent things stop registering. Overdue is the one thing allowed to be loud.
 
      Each has a -bg tint for badge backgrounds.

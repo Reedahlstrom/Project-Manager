@@ -30,7 +30,7 @@ export function Tooltip({
         <RadixTooltip.Content
           side={side}
           sideOffset={6}
-          className="z-50 rounded-md border border-border bg-surface-4 px-2 py-1 text-xs text-text-2 shadow-lg shadow-black/40"
+          className="z-50 rounded-md border border-border bg-surface-4 px-2 py-1 text-xs text-text-2 shadow-[var(--shadow-pop)]"
         >
           {content}
         </RadixTooltip.Content>

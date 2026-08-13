@@ -58,7 +58,7 @@ export function CommandPalette({ onQuickCapture }: { onQuickCapture?: () => void
       <RadixDialog.Portal>
         <RadixDialog.Overlay
           className={cn(
-            'fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px]',
+            'fixed inset-0 z-40 bg-[rgb(16_24_40/0.35)] backdrop-blur-[2px]',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0',
             'duration-150 motion-reduce:animate-none'
           )}
@@ -67,7 +67,7 @@ export function CommandPalette({ onQuickCapture }: { onQuickCapture?: () => void
           aria-label="Command palette"
           className={cn(
             'fixed left-1/2 top-[15vh] z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2',
-            'overflow-hidden rounded-xl border border-border bg-surface-4 shadow-2xl shadow-black/60',
+            'overflow-hidden rounded-xl border border-border bg-surface-4 shadow-[var(--shadow-modal)]',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
             'duration-150 motion-reduce:animate-none'

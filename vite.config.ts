@@ -12,11 +12,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Cadence',
-        short_name: 'Cadence',
+        name: 'Alta Labs Mega Projects',
+        // Home-screen labels truncate around 12 characters, so this is the
+        // short form rather than the full name.
+        short_name: 'Mega Projects',
         description: 'Operating system for the Alta Labs portfolio.',
-        theme_color: '#0A0B0D',
-        background_color: '#0A0B0D',
+        theme_color: '#F7F8FA',
+        background_color: '#F7F8FA',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

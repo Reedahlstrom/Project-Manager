@@ -31,7 +31,7 @@ export function SignIn() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-bg px-5">
       <form onSubmit={(event) => void onSubmit(event)} className="w-full max-w-xs">
-        <p className="text-sm font-semibold tracking-tight text-text">Cadence</p>
+        <p className="text-sm font-semibold tracking-tight text-text">Mega Projects</p>
         <p className="mb-6 mt-0.5 t-meta">Alta Labs</p>
 
         <div className="mb-3">

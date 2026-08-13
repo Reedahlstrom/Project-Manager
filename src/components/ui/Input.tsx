@@ -26,14 +26,14 @@ export function Textarea({ className, ...props }: ComponentPropsWithRef<'textare
  *
  * A custom calendar is a lot of code and a worse experience on a phone, which is
  * where most dates get set in this app. iOS and Android both give a good wheel
- * for free. `[color-scheme:dark]` is what makes the native widget render dark
- * instead of a white rectangle.
+ * for free. `[color-scheme:light]` keeps the native widget matching the app
+ * rather than following the OS setting.
  */
 export function DateInput({ className, ...props }: ComponentPropsWithRef<'input'>) {
   return (
     <input
       type="date"
-      className={cn(field, 'h-9 [color-scheme:dark]', className)}
+      className={cn(field, 'h-9 [color-scheme:light]', className)}
       {...props}
     />
   )
