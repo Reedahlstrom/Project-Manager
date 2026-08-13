@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
-import { NotBuiltYet } from '@/components/NotBuiltYet'
+import { DocumentsSection } from '@/components/projects/DocumentsSection'
+import { EventSheet } from '@/components/projects/EventSheet'
 import { ProjectSheet } from '@/components/projects/ProjectSheet'
 import { Section } from '@/components/Page'
 import { CommitmentItem } from '@/components/today/CommitmentItem'
@@ -16,7 +17,7 @@ import { useCommitments, useCompleteCommitment } from '@/hooks/useCommitments'
 import { useDeleteNote, useProjectNotes, useSaveNote } from '@/hooks/useNotes'
 import { useFutureEvents, useProjects } from '@/hooks/useProjects'
 import { formatEventTime, todayISO } from '@/lib/dates'
-import type { CommitmentRow, NoteRow } from '@/types/models'
+import type { CommitmentRow, EventRow, NoteRow } from '@/types/models'
 
 /**
  * Everything about one project on one screen.
@@ -40,6 +41,8 @@ export function ProjectDetail() {
   const [editingCommitment, setEditingCommitment] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
   const [seedDetail, setSeedDetail] = useState<string | undefined>(undefined)
+  const [eventSheet, setEventSheet] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<EventRow | undefined>(undefined)
 
   const commitments = useMemo(
     () => allCommitments.filter((c) => c.project_id === project?.id),
@@ -167,7 +170,14 @@ export function ProjectDetail() {
         ) : (
           <Card className="p-1">
             {projectEvents.map((event) => (
-              <Row key={event.id} className="items-center">
+              <Row
+                key={event.id}
+                className="cursor-pointer items-center"
+                onClick={() => {
+                  setEditingEvent(event)
+                  setEventSheet(true)
+                }}
+              >
                 <CalendarDays className="size-4 shrink-0 text-text-3" aria-hidden />
                 <span className="min-w-0 flex-1 truncate t-item">{event.title}</span>
                 <span className="t-meta">{formatEventTime(event.starts_at, event.timezone)}</span>
@@ -175,10 +185,23 @@ export function ProjectDetail() {
             ))}
           </Card>
         )}
+        <div className="mt-2 px-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditingEvent(undefined)
+              setEventSheet(true)
+            }}
+          >
+            <Plus />
+            Add a date
+          </Button>
+        </div>
       </Section>
 
       <Section title="Documents">
-        <NotBuiltYet line="File upload lands next. It needs a private storage bucket with short-lived signed links — not something to rush given what goes in these projects." />
+        <DocumentsSection projectId={project.id} />
       </Section>
 
       <ProjectSheet open={projectSheet} onOpenChange={setProjectSheet} project={project} />
@@ -188,6 +211,12 @@ export function ProjectDetail() {
         commitment={editingCommitment}
         initialTitle={seedTitle}
         initialDetail={seedDetail}
+      />
+      <EventSheet
+        open={eventSheet}
+        onOpenChange={setEventSheet}
+        projectId={project.id}
+        event={editingEvent}
       />
     </div>
   )
