@@ -1,0 +1,51 @@
+name: Checks
+
+# Cloudflare Pages builds and deploys this repo directly on every push to main.
+# This workflow deliberately does NOT deploy — two things deploying the same
+# project would race each other to the edge on every commit.
+#
+# What it does instead is tell you whether the commit is sound. Cloudflare's
+# build only runs `npm run build`, so a type error or a broken test still ships.
+# This puts a ✓ or ✗ on the commit within a minute so you find out from GitHub
+# rather than from the app.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm run lint
+
+      # These cover partition() and the business-day maths — the logic that
+      # decides what falls through the cracks. It fails silently when wrong, so
+      # it is the part most worth guarding.
+      - run: npm test
+
+      # Build last: if it fails here it would also fail on Cloudflare, and this
+      # says so with a readable log.
+      - run: npm run build
+        env:
+          # Not secrets. Anything prefixed VITE_ is compiled into the browser
+          # bundle and readable by anyone with devtools. The service role and
+          # Anthropic keys live in Supabase and never reach a frontend build.
+          VITE_SUPABASE_URL: https://vgsfqcuhiliazgmjznje.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_DvS7WpO59iq2Bj0UnHgkYg_LfTQ9EpJ
