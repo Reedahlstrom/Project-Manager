@@ -6,7 +6,7 @@ import { Label, Select } from '@/components/ui/Select'
 import { Sheet } from '@/components/ui/Dialog'
 import { usePeople, useProjects } from '@/hooks/useProjects'
 import { useSaveCommitment } from '@/hooks/useCommitments'
-import { defaultFollowUp } from '@/lib/dates'
+import { defaultFollowUp, todayISO } from '@/lib/dates'
 import type { CommitmentRow, CommitmentStatus, OwnerType } from '@/types/models'
 
 const OWNERS: { value: OwnerType; label: string }[] = [
@@ -28,6 +28,7 @@ export function CommitmentSheet({
   open,
   onOpenChange,
   commitment,
+  defaultProjectId,
   initialTitle,
   initialDetail,
   onSaved,
@@ -35,6 +36,8 @@ export function CommitmentSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
   commitment?: CommitmentRow | undefined
+  /** The project you're standing in. Beats "whichever project sorts first". */
+  defaultProjectId?: string | undefined
   initialTitle?: string | undefined
   initialDetail?: string | undefined
   onSaved?: (() => void) | undefined
@@ -57,14 +60,19 @@ export function CommitmentSheet({
     if (!open) return
     setTitle(commitment?.title ?? initialTitle ?? '')
     setDetail(commitment?.detail ?? initialDetail ?? '')
-    setProjectId(commitment?.project_id ?? projects[0]?.id)
+    // Editing keeps its own project; creating uses the one you're looking at.
+    // Falling back to projects[0] meant opening this from inside Church Media
+    // Fund pre-selected Angel BAC — a wrong default that saves silently.
+    setProjectId(commitment?.project_id ?? defaultProjectId ?? projects[0]?.id)
     setOwnerType(commitment?.owner_type ?? 'me')
     setOwnerPersonId(commitment?.owner_person_id ?? undefined)
     setRequestedBy(commitment?.requested_by ?? 'none')
-    setDueDate(commitment?.due_date ?? '')
+    // New work is nearly always for today. Editing never gets a date invented
+    // for it.
+    setDueDate(commitment?.due_date ?? (commitment ? '' : todayISO()))
     setFollowUp(commitment?.follow_up_date ?? '')
     setStatus(commitment?.status ?? 'open')
-  }, [open, commitment, initialTitle, initialDetail, projects])
+  }, [open, commitment, defaultProjectId, initialTitle, initialDetail, projects])
 
   // A waiting commitment with no follow-up date is exactly the thing that falls
   // through the cracks. The database refuses to store one; the form fills it in

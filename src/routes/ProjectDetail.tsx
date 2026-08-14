@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
 import { DocumentsSection } from '@/components/projects/DocumentsSection'
+import { DoneList } from '@/components/projects/DoneList'
 import { EventSheet } from '@/components/projects/EventSheet'
 import { ProjectSheet } from '@/components/projects/ProjectSheet'
 import { Section } from '@/components/Page'
@@ -52,6 +53,20 @@ export function ProjectDetail() {
   const today = todayISO()
   const overdue = open.filter((c) => c.due_date !== null && c.due_date < today)
   const projectEvents = events.filter((e) => e.project_id === project?.id)
+
+  // Newest first, and anything still owed to someone floats to the top —
+  // an unreported item is the one that still needs an action from you.
+  const done = commitments
+    .filter((c) => c.status === 'done')
+    .sort((a, b) => {
+      const aOwed = a.requested_by !== null && a.reported_back_at === null
+      const bOwed = b.requested_by !== null && b.reported_back_at === null
+      if (aOwed !== bOwed) return aOwed ? -1 : 1
+      return (b.completed_at ?? '').localeCompare(a.completed_at ?? '')
+    })
+  const awaitingReport = done.filter(
+    (c) => c.requested_by !== null && c.reported_back_at === null
+  ).length
 
   if (isLoading) return <p className="px-1 t-meta">Loading…</p>
 
@@ -164,6 +179,10 @@ export function ProjectDetail() {
         </div>
       </Section>
 
+      <Section title={awaitingReport > 0 ? `Done · ${String(awaitingReport)} to report back` : 'Done'} count={done.length}>
+        <DoneList commitments={done} />
+      </Section>
+
       <Section title="Dates" count={projectEvents.length}>
         {projectEvents.length === 0 ? (
           <p className="px-3 t-meta">Nothing scheduled.</p>
@@ -211,6 +230,7 @@ export function ProjectDetail() {
         open={commitmentSheet}
         onOpenChange={setCommitmentSheet}
         commitment={editingCommitment}
+        defaultProjectId={project.id}
         initialTitle={seedTitle}
         initialDetail={seedDetail}
       />

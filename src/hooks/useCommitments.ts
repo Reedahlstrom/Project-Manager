@@ -144,20 +144,32 @@ export function useLogNudge() {
   )
 }
 
-/** Closing the loop. The other half of the cadence. */
+/**
+ * Closing the loop. The other half of the cadence.
+ *
+ * Reversible — marking something reported by mistake shouldn't be permanent,
+ * and an irreversible one-tap action is one you hesitate over.
+ */
 export function useReportBack() {
   return useCommitmentMutation(
-    async ({ id, note }: { id: string; note: string | null }) => {
+    async ({ id, note, undo }: { id: string; note: string | null; undo?: boolean }) => {
       const { error } = await supabase
         .from('commitments')
-        .update({ reported_back_at: new Date().toISOString(), report_note: note })
+        .update({
+          reported_back_at: undo ? null : new Date().toISOString(),
+          report_note: undo ? null : note,
+        })
         .eq('id', id)
       if (error) throw error
     },
-    (rows, { id, note }) =>
+    (rows, { id, note, undo }) =>
       rows.map((row) =>
         row.id === id
-          ? { ...row, reported_back_at: new Date().toISOString(), report_note: note }
+          ? {
+              ...row,
+              reported_back_at: undo ? null : new Date().toISOString(),
+              report_note: undo ? null : note,
+            }
           : row
       )
   )
