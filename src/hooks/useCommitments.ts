@@ -1,9 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { defaultFollowUp, todayISO } from '@/lib/dates'
+import { defaultFollowUp } from '@/lib/dates'
 import { supabase } from '@/lib/supabase'
 import type { CommitmentRow, TablesInsert, TablesUpdate } from '@/types/models'
+
+// Pure list logic lives in its own module so it can be tested without a
+// database client. Re-exported here so call sites don't all have to change.
+export { partition } from '@/lib/commitment-lists'
 
 export const COMMITMENTS_KEY = ['commitments'] as const
 
@@ -20,38 +24,6 @@ export function useCommitments() {
       return data
     },
   })
-}
-
-/**
- * The four lists on Today, derived in one pass.
- *
- * `chase` and `reportBack` are the two symmetric halves of the cadence:
- * someone owes us, and we owe someone. Both are computed here so the ordering
- * rules live in one place rather than in the components.
- */
-export function partition(commitments: CommitmentRow[]) {
-  const today = todayISO()
-  const open = commitments.filter((c) => c.status !== 'done' && c.status !== 'dropped')
-
-  return {
-    overdue: open
-      .filter((c) => c.due_date !== null && c.due_date < today)
-      .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')),
-
-    dueToday: open.filter((c) => c.due_date === today),
-
-    // Waiting on someone else, and the follow-up date has arrived.
-    chase: open
-      .filter((c) => c.status === 'waiting' && c.follow_up_date !== null && c.follow_up_date <= today)
-      .sort((a, b) => (a.follow_up_date ?? '').localeCompare(b.follow_up_date ?? '')),
-
-    // Done, someone asked for it, and they still don't know it's finished.
-    reportBack: commitments
-      .filter(
-        (c) => c.status === 'done' && c.requested_by !== null && c.reported_back_at === null
-      )
-      .sort((a, b) => (a.completed_at ?? '').localeCompare(b.completed_at ?? '')),
-  }
 }
 
 function useCommitmentMutation<TVars>(

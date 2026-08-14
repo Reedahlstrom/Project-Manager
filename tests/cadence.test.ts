@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { partition } from '@/hooks/useCommitments'
+import { partition } from '@/lib/commitment-lists'
 import { addBusinessDays, defaultFollowUp, isOverdue, toISO, todayISO } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
 
