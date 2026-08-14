@@ -10,7 +10,7 @@
  * Unmatched meetings are not discarded. They go to the inbox, where you file
  * them in a tap and can teach the router with a rule.
  */
-import { accessToken, json, serviceClient } from '../_shared/google.ts'
+import { accessToken, json, mailboxOwnerId, serviceClient } from '../_shared/google.ts'
 
 type GEvent = {
   id: string
@@ -58,6 +58,7 @@ Deno.serve(async () => {
 
   try {
     const token = await accessToken(db)
+    const ownerId = await mailboxOwnerId(db)
     const { data: rules = [] } = await db
       .from('routing_rules')
       .select('project_id, kind, value, always')
@@ -99,6 +100,7 @@ Deno.serve(async () => {
           source: 'email',
           source_ref: ref,
           source_url: event.htmlLink ?? null,
+          created_by: ownerId,
         })
         // Unique violation just means we already surfaced it.
         if (!error) inboxed++

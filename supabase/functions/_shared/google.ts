@@ -29,6 +29,31 @@ export function requireEnv(name: string): string {
   return value
 }
 
+/**
+ * The profile that owns the connected mailbox.
+ *
+ * Inbox items are private to their creator — `created_by = auth.uid()` — so a
+ * row inserted with a null creator is invisible to everybody, including the
+ * person whose mail it is. Matching the Google account email to a profile
+ * attributes it correctly, and keeps working if Paul ever connects his own
+ * mailbox rather than assuming everything belongs to Reed.
+ */
+export async function mailboxOwnerId(db: SupabaseClient): Promise<string | null> {
+  const { data: cred } = await db
+    .from('integration_credentials')
+    .select('account_email')
+    .eq('provider', 'google')
+    .maybeSingle()
+  if (!cred?.account_email) return null
+
+  const { data: profile } = await db
+    .from('profiles')
+    .select('id')
+    .eq('email', cred.account_email)
+    .maybeSingle()
+  return profile?.id ?? null
+}
+
 /** Exchange a refresh token for a short-lived access token. */
 export async function accessToken(db: SupabaseClient): Promise<string> {
   const { data, error } = await db

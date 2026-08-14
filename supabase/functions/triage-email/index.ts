@@ -19,7 +19,15 @@
  * Nothing is remembered in memory — `processed_messages` is the seen-set,
  * because this process does not survive between ticks.
  */
-import { accessToken, claim, json, recordDecision, release, serviceClient } from '../_shared/google.ts'
+import {
+  accessToken,
+  claim,
+  json,
+  mailboxOwnerId,
+  recordDecision,
+  release,
+  serviceClient,
+} from '../_shared/google.ts'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_PER_RUN = 25
@@ -110,6 +118,8 @@ Deno.serve(async () => {
 
   try {
     const token = await accessToken(db)
+    // Without this the row is invisible to everyone — see mailboxOwnerId.
+    const ownerId = await mailboxOwnerId(db)
     const { data: rules = [] } = await db
       .from('routing_rules')
       .select('project_id, kind, value, always')
@@ -176,6 +186,7 @@ Deno.serve(async () => {
             source_ref: `gmail:${id}`,
             source_url: `https://mail.google.com/mail/u/0/#inbox/${msg.threadId ?? id}`,
             project_id: rule?.project_id ?? null,
+            created_by: ownerId,
           })
           if (error && error.code !== '23505') throw new Error(error.message)
           flagged++
