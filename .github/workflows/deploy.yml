@@ -1,0 +1,51 @@
+name: Deploy
+
+# Push to main → build → deploy. No manual step, and no dependency on anyone's
+# laptop being open.
+#
+# This deploys to the EXISTING `altalabs` Pages project rather than converting it
+# to a git-connected one. Cloudflare cannot convert a direct-upload project, and
+# recreating it would mean repointing altalabsstuff.org by hand with the domain
+# down in between. This gets the same outcome and never touches DNS.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # A newer push should win rather than racing an older deploy to the edge.
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Fail here rather than shipping a broken build. These are cheap and catch
+      # the things that would otherwise only show up in the browser.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      - run: npm run build
+        env:
+          # Only the two public values. The service role and Anthropic keys are
+          # Supabase Edge Function secrets and must never reach a frontend build.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name altalabs --branch main
