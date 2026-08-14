@@ -15,9 +15,23 @@
  */
 import { SCOPES, json, requireEnv, serviceClient } from '../_shared/google.ts'
 
+/**
+ * The redirect URI is fixed, not derived from the request.
+ *
+ * `new URL(req.url).origin + pathname` looked obvious and was wrong twice over:
+ * Supabase strips the `/functions/v1` prefix before the function sees it, and
+ * terminates TLS upstream so the inbound URL is `http`. That produced
+ * `http://…supabase.co/google-connect`, which matches nothing registered with
+ * Google and fails as redirect_uri_mismatch.
+ *
+ * It has to match the Cloud Console entry character for character anyway, so
+ * hardcoding it is both correct and self-documenting.
+ */
+const REDIRECT_URI = `${Deno.env.get('SUPABASE_URL')!}/functions/v1/google-connect`
+
 Deno.serve(async (req) => {
   const url = new URL(req.url)
-  const redirectUri = `${url.origin}${url.pathname}`
+  const redirectUri = REDIRECT_URI
 
   try {
     const code = url.searchParams.get('code')
@@ -95,10 +109,13 @@ Deno.serve(async (req) => {
                     display:grid;place-items:center;height:100vh;margin:0;text-align:center">
          <div>
            <h1 style="font-size:1.25rem;margin:0 0 .5rem">Google connected</h1>
-           <p style="color:#4A515E;margin:0">${who.email ?? 'account'} — you can close this tab.</p>
+           <p style="color:#4A515E;margin:0">${who.email ?? 'account'} &mdash; you can close this tab.</p>
          </div>
        </body>`,
-      { headers: { 'Content-Type': 'text/html' } }
+      // Charset must be explicit. Without it the gateway serves this as plain
+      // text and you see the markup instead of the page — which looks like a
+      // failure at the exact moment the thing has actually succeeded.
+      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     )
   } catch (err) {
     return json({ error: String(err) }, 500)
