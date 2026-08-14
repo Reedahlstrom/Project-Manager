@@ -179,8 +179,10 @@ export function ProjectDetail() {
                 }}
               >
                 <CalendarDays className="size-4 shrink-0 text-text-3" aria-hidden />
-                <span className="min-w-0 flex-1 truncate t-item">{event.title}</span>
-                <span className="t-meta">{formatEventTime(event.starts_at, event.timezone)}</span>
+                <span className="min-w-0 flex-1 line-clamp-2 t-item">{event.title}</span>
+                <span className="shrink-0 t-meta">
+                  {formatEventTime(event.starts_at, event.timezone)}
+                </span>
               </Row>
             ))}
           </Card>

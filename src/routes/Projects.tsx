@@ -127,17 +127,18 @@ function ProjectCard({
 }) {
   return (
     <Card className="p-4">
-      {/* No flex-wrap. With it, a project whose purpose runs long pushed the
-          health control onto its own line while short ones kept it on the
-          right — the same control in two places depending on the text. */}
-      <div className="flex items-start justify-between gap-3">
+      {/* Stacked on a phone, side by side from sm up.
+          Side-by-side at 390px squeezed "Angel Business Advisory Council" into a
+          four-line column to make room for a fixed-width dropdown. The name is
+          the point of the card; the health control can have its own row. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <HealthDot health={project.health} />
             {/* The name opens the project. Editing its settings is the pencil,
                 deliberately secondary — you open a project to work in it, not
                 to rename it. */}
-            <Link to={`/projects/${project.slug}`} className="t-item hover:underline">
+            <Link to={`/projects/${project.slug}`} className="t-item text-balance hover:underline">
               {project.name}
             </Link>
             {/* Restricted projects are Reed and Paul only. Saying so on the card
@@ -162,7 +163,7 @@ function ProjectCard({
           <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Edit ${project.name}`}>
             <Pencil />
           </Button>
-          <div className="w-44">
+          <div className="flex-1 sm:w-44 sm:flex-none">
             <Select
               aria-label={`Health for ${project.name}`}
               value={project.health}

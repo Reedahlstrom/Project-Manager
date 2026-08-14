@@ -157,7 +157,9 @@ export function Today() {
           className="h-11"
           data-capture-field
         />
-        <p className="mt-1.5 px-1 t-meta">
+        {/* Keyboard shortcuts are meaningless on a phone — there is no
+            keyboard until you tap a field, and none of these apply then. */}
+        <p className="mt-1.5 hidden px-1 t-meta sm:block">
           Press <Key>c</Key> from anywhere · <Key>j</Key>/<Key>k</Key> to move ·{' '}
           <Key>x</Key> to complete
         </p>
@@ -265,8 +267,8 @@ export function Today() {
                 {events.map((event) => (
                   <Row key={event.id} className="items-center">
                     <CalendarDays className="size-4 shrink-0 text-text-3" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate t-item">{event.title}</span>
-                    <span className="t-meta">
+                    <span className="min-w-0 flex-1 line-clamp-2 t-item">{event.title}</span>
+                    <span className="shrink-0 t-meta">
                       {formatEventTime(event.starts_at, event.timezone)}
                     </span>
                   </Row>
@@ -283,28 +285,33 @@ export function Today() {
               />
             ) : (
               <Card className="p-1">
+                {/* Stacked on a phone. Side by side, the buttons took most of
+                    the row and squeezed the captured text into one word per
+                    line — unreadable, and the text is the thing you're triaging. */}
                 {inbox.map((item) => (
-                  <Row key={item.id} className="items-center">
-                    <span className="min-w-0 flex-1 t-item">{item.raw_text}</span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => {
-                        openNew(item.raw_text)
-                        dismiss.mutate(item.id)
-                      }}
-                    >
-                      Make it a commitment
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        dismiss.mutate(item.id)
-                      }}
-                    >
-                      Drop
-                    </Button>
+                  <Row key={item.id} className="flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+                    <span className="min-w-0 flex-1 text-pretty t-item">{item.raw_text}</span>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          openNew(item.raw_text)
+                          dismiss.mutate(item.id)
+                        }}
+                      >
+                        Make it a commitment
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          dismiss.mutate(item.id)
+                        }}
+                      >
+                        Drop
+                      </Button>
+                    </div>
                   </Row>
                 ))}
               </Card>

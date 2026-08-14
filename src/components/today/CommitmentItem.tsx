@@ -70,11 +70,19 @@ export function CommitmentItem({
         onClick={onEdit}
         className="min-w-0 flex-1 text-left"
       >
-        <p className={cn('t-item truncate', variant === 'overdue' && 'text-text')}>
+        {/* Wrap to two lines rather than truncate. On a phone a truncated
+            commitment reads as "Send the pre-read packet to every con…", which
+            tells you nothing about what you actually have to do. */}
+        <p className={cn('t-item line-clamp-2 text-pretty', variant === 'overdue' && 'text-text')}>
           {commitment.title}
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {project ? <span className="t-meta">{project.name}</span> : null}
+          {/* Truncated, not wrapped. A long project name spilling onto a second
+              line pushed the badges to a third and made the row three deep on a
+              phone — the metadata should stay one line under the title. */}
+          {project ? (
+            <span className="max-w-[60%] truncate t-meta">{project.name}</span>
+          ) : null}
 
           {variant === 'overdue' && commitment.due_date ? (
             <Badge tone="red">{relativeDays(commitment.due_date)}</Badge>

@@ -42,6 +42,9 @@ export function Select({
           'transition-colors duration-150 ease-out hover:border-border-strong',
           'focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent',
           'data-[placeholder]:text-text-3',
+          // A wrapping trigger grows taller than its neighbour and breaks the
+          // grid. One line, ellipsis if it doesn't fit.
+          '[&>span]:truncate [&>span]:text-left',
           className
         )}
       >

@@ -170,7 +170,7 @@ export function CommitmentSheet({
               aria-label="Asked by"
               value={requestedBy}
               onValueChange={setRequestedBy}
-              options={[{ value: 'none', label: 'Nobody — my own' }, ...OWNERS]}
+              options={[{ value: 'none', label: 'Nobody' }, ...OWNERS]}
             />
           </div>
         </div>

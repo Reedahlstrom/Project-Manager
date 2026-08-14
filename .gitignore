@@ -46,3 +46,6 @@ test-results
 
 # Exports produced by the backup command (prompt 9)
 exports/
+
+# Local iPhone screenshots from scripts/mobile-shots.mjs
+mobile-shots/

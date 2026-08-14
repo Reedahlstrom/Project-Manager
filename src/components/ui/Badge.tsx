@@ -25,8 +25,19 @@ export function Badge({ className, tone, ...props }: BadgeProps) {
   return <span className={cn(badge({ tone }), className)} {...props} />
 }
 
-/** Project health maps to the muted status colours, never to raw hex. */
+/**
+ * Project health as a dot.
+ *
+ * `inline-block` is load-bearing: as a bare inline span, width and height are
+ * ignored unless it happens to be a direct flex child, so the dot silently
+ * vanished anywhere it was wrapped in another element.
+ */
 export function HealthDot({ health }: { health: 'green' | 'amber' | 'red' }) {
   const tone = { green: 'bg-green', amber: 'bg-amber', red: 'bg-red' }[health]
-  return <span className={cn('size-1.5 shrink-0 rounded-full', tone)} aria-hidden />
+  return (
+    <span
+      className={cn('inline-block size-1.5 shrink-0 rounded-full align-middle', tone)}
+      aria-hidden
+    />
+  )
 }
