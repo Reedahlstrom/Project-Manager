@@ -165,6 +165,7 @@ const shots = [
   ['04-people', `${BASE}/people`],
   ['05-paul', `${BASE}/paul`],
   ['06-scorecard', `${BASE}/scorecard`],
+  ['10-settings', `${BASE}/settings`],
 ]
 
 for (const [name, url] of shots) {

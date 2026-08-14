@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Search, Settings2 } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 
 import { CommandPalette } from '@/components/CommandPalette'
@@ -76,7 +76,14 @@ export function AppShell() {
             <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[11px] font-medium text-text-2">
               {CURRENT_USER.initials}
             </span>
-            <span className="text-[13px] text-text-2">{CURRENT_USER.name}</span>
+            <span className="flex-1 text-[13px] text-text-2">{CURRENT_USER.name}</span>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className="rounded-md p-1 text-text-3 transition-colors duration-150 hover:bg-surface-2 hover:text-text"
+            >
+              <Settings2 className="size-4" />
+            </NavLink>
           </div>
         </aside>
 

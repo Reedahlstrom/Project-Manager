@@ -6,7 +6,19 @@ import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist', 'node_modules', 'src/types/database.ts'] },
+  {
+    ignores: [
+      'dist',
+      'dev-dist',
+      'node_modules',
+      'src/types/database.ts',
+      // Deno, not the browser or Node — different globals, different module
+      // resolution, and not covered by any tsconfig here. Type checking for
+      // these happens at deploy time.
+      'supabase/functions',
+      'mobile-shots',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ['**/*.{ts,tsx}'],

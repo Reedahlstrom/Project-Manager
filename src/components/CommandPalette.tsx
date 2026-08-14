@@ -1,6 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
 import { Command } from 'cmdk'
-import { Zap } from 'lucide-react'
+import { Settings2, Zap } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -121,6 +121,16 @@ export function CommandPalette({ onQuickCapture }: { onQuickCapture?: () => void
                     {label}
                   </PaletteItem>
                 ))}
+                <PaletteItem
+                  onSelect={() => {
+                    run(() => {
+                      void navigate('/settings')
+                    })
+                  }}
+                >
+                  <Settings2 className="size-4 text-text-3" aria-hidden />
+                  Settings
+                </PaletteItem>
               </Command.Group>
             </Command.List>
           </Command>

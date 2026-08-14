@@ -8,6 +8,7 @@ import { People } from '@/routes/People'
 import { ProjectDetail } from '@/routes/ProjectDetail'
 import { Projects } from '@/routes/Projects'
 import { Scorecard } from '@/routes/Scorecard'
+import { Settings } from '@/routes/Settings'
 import { SignIn } from '@/routes/SignIn'
 import { Today } from '@/routes/Today'
 
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/projects/:slug" element={<ProjectDetail />} />
         <Route path="/people" element={<People />} />
         <Route path="/scorecard" element={<Scorecard />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

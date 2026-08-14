@@ -500,6 +500,9 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           ends_at: string | null
+          external_id: string | null
+          external_source: string | null
+          external_updated_at: string | null
           id: string
           location: string | null
           project_id: string
@@ -518,6 +521,9 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           ends_at?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          external_updated_at?: string | null
           id?: string
           location?: string | null
           project_id: string
@@ -536,6 +542,9 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           ends_at?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          external_updated_at?: string | null
           id?: string
           location?: string | null
           project_id?: string
@@ -578,24 +587,33 @@ export type Database = {
           created_by: string | null
           id: string
           processed: boolean
+          project_id: string | null
           raw_text: string
           source: Database["public"]["Enums"]["inbox_source"]
+          source_ref: string | null
+          source_url: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           id?: string
           processed?: boolean
+          project_id?: string | null
           raw_text: string
           source?: Database["public"]["Enums"]["inbox_source"]
+          source_ref?: string | null
+          source_url?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           id?: string
           processed?: boolean
+          project_id?: string | null
           raw_text?: string
           source?: Database["public"]["Enums"]["inbox_source"]
+          source_ref?: string | null
+          source_url?: string | null
         }
         Relationships: [
           {
@@ -605,7 +623,65 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inbox_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      integration_credentials: {
+        Row: {
+          account_email: string | null
+          connected_at: string
+          provider: string
+          refresh_token: string
+          scopes: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_email?: string | null
+          connected_at?: string
+          provider: string
+          refresh_token: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_email?: string | null
+          connected_at?: string
+          provider?: string
+          refresh_token?: string
+          scopes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_state: {
+        Row: {
+          last_error: string | null
+          last_run_at: string | null
+          provider: string
+          sync_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          last_error?: string | null
+          last_run_at?: string | null
+          provider: string
+          sync_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          last_error?: string | null
+          last_run_at?: string | null
+          provider?: string
+          sync_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       milestones: {
         Row: {
@@ -818,6 +894,33 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_messages: {
+        Row: {
+          decision: string | null
+          external_id: string
+          id: number
+          processed_at: string
+          reason: string | null
+          source: string
+        }
+        Insert: {
+          decision?: string | null
+          external_id: string
+          id?: number
+          processed_at?: string
+          reason?: string | null
+          source: string
+        }
+        Update: {
+          decision?: string | null
+          external_id?: string
+          id?: number
+          processed_at?: string
+          reason?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -893,6 +996,41 @@ export type Database = {
         }
         Relationships: []
       }
+      routing_rules: {
+        Row: {
+          always: boolean
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["rule_kind"]
+          project_id: string
+          value: string
+        }
+        Insert: {
+          always?: boolean
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["rule_kind"]
+          project_id: string
+          value: string
+        }
+        Update: {
+          always?: boolean
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["rule_kind"]
+          project_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routing_rules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -909,6 +1047,7 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: boolean
       }
+      storage_project_id: { Args: { object_name: string }; Returns: string }
     }
     Enums: {
       attendee_role: "host" | "attendee" | "speaker" | "optional"
@@ -924,6 +1063,7 @@ export type Database = {
       project_status: "active" | "paused" | "closed"
       relationship: "principal" | "advisor" | "partner" | "staff" | "external"
       rsvp_status: "unknown" | "yes" | "no" | "tentative"
+      rule_kind: "sender" | "domain" | "keyword" | "attendee"
       sensitivity: "standard" | "sensitive" | "restricted"
       user_role: "reed" | "paul" | "heather"
     }
@@ -1069,6 +1209,7 @@ export const Constants = {
       project_status: ["active", "paused", "closed"],
       relationship: ["principal", "advisor", "partner", "staff", "external"],
       rsvp_status: ["unknown", "yes", "no", "tentative"],
+      rule_kind: ["sender", "domain", "keyword", "attendee"],
       sensitivity: ["standard", "sensitive", "restricted"],
       user_role: ["reed", "paul", "heather"],
     },

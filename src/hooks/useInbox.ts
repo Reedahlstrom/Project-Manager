@@ -52,6 +52,9 @@ export function useCapture(userId: string | undefined) {
         processed: false,
         created_by: userId ?? null,
         created_at: new Date().toISOString(),
+        project_id: null,
+        source_ref: null,
+        source_url: null,
       }
       queryClient.setQueryData<InboxItemRow[]>(INBOX_KEY, [optimistic, ...previous])
       return { previous }
