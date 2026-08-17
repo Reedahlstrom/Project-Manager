@@ -51,7 +51,10 @@ export function CommitmentSheet({
   const [projectId, setProjectId] = useState<string | undefined>(undefined)
   const [ownerType, setOwnerType] = useState<OwnerType>('me')
   const [ownerPersonId, setOwnerPersonId] = useState<string | undefined>(undefined)
-  const [requestedBy, setRequestedBy] = useState<string>('none')
+  // Defaults to Paul, because that is the job. Almost everything here is
+  // something Paul asked for, and a default that matches the exception means
+  // the loop silently never exists.
+  const [requestedBy, setRequestedBy] = useState<string>('paul')
   const [dueDate, setDueDate] = useState('')
   const [followUp, setFollowUp] = useState('')
   const [status, setStatus] = useState<CommitmentStatus>('open')
@@ -66,7 +69,7 @@ export function CommitmentSheet({
     setProjectId(commitment?.project_id ?? defaultProjectId ?? projects[0]?.id)
     setOwnerType(commitment?.owner_type ?? 'me')
     setOwnerPersonId(commitment?.owner_person_id ?? undefined)
-    setRequestedBy(commitment?.requested_by ?? 'none')
+    setRequestedBy(commitment?.requested_by ?? (commitment ? 'none' : 'paul'))
     // New work is nearly always for today. Editing never gets a date invented
     // for it.
     setDueDate(commitment?.due_date ?? (commitment ? '' : todayISO()))

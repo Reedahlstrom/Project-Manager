@@ -36,13 +36,14 @@ export function CommitmentItem({
 }) {
   const waitedDays = daysSince(commitment.last_nudged_at ?? commitment.created_at)
 
-  // Ticked off, but someone is still waiting to hear about it. The row stays
-  // where it was and grows a second action, so the whole loop happens in one
-  // place instead of sending you to another section.
-  const owesReport =
-    commitment.status === 'done' &&
-    commitment.requested_by !== null &&
-    commitment.reported_back_at === null
+  // Ticked off and not yet reported. The row stays where it was and grows a
+  // second action, so the whole loop happens in one place.
+  //
+  // Deliberately does NOT require a requester. Most commitments were created
+  // without one, and gating the loop on a field nobody filled in means ticking
+  // something off just makes it vanish — which is the opposite of the point.
+  // If nobody is recorded, the sheet asks who.
+  const owesReport = commitment.status === 'done' && commitment.reported_back_at === null
 
   const who = commitment.requested_by
     ? (OWNER_LABEL[commitment.requested_by] ?? commitment.requested_by)
@@ -116,11 +117,6 @@ export function CommitmentItem({
 
           {variant === 'report' && commitment.requested_by ? (
             <Badge tone="accent">for {who}</Badge>
-          ) : null}
-
-          {/* Says what to do next, not just what state it's in. */}
-          {owesReport && variant !== 'report' ? (
-            <Badge tone="accent">Now tell {who}</Badge>
           ) : null}
 
           {variant === 'default' && commitment.due_date && !owesReport ? (

@@ -5,8 +5,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
 import { Sheet } from '@/components/ui/Dialog'
 import { Textarea } from '@/components/ui/Input'
-import { Label } from '@/components/ui/Select'
-import { useReportBack } from '@/hooks/useCommitments'
+import { Label, Select } from '@/components/ui/Select'
+import { useReportBack, useSaveCommitment } from '@/hooks/useCommitments'
 import { celebrate } from '@/lib/celebrate'
 import type { CommitmentRow, OwnerType, ProjectRow } from '@/types/models'
 
@@ -45,18 +45,24 @@ export function ReportBackSheet({
   burstFrom?: { x: number; y: number } | undefined
 }) {
   const reportBack = useReportBack()
+  const save = useSaveCommitment()
   const [note, setNote] = useState('')
+  // Most existing commitments were created without a requester. Rather than
+  // refusing to report, ask here — one dropdown, pre-set to the likely answer.
+  const [recipient, setRecipient] = useState<OwnerType>('paul')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setNote(commitment?.report_note ?? '')
+    setRecipient(commitment?.requested_by ?? 'paul')
     setCopied(false)
   }, [open, commitment])
 
   if (!commitment) return null
 
-  const who = commitment.requested_by ? WHO[commitment.requested_by] : 'them'
+  const who = WHO[commitment.requested_by ?? recipient]
+  const needsRecipient = commitment.requested_by === null
   const done = commitment.completed_at
     ? new Date(commitment.completed_at).toLocaleDateString(undefined, {
         month: 'long',
@@ -98,6 +104,24 @@ export function ReportBackSheet({
           </p>
         </div>
 
+        {/* Only shown when nobody was recorded, so the common path stays one
+            field long. */}
+        {needsRecipient ? (
+          <div>
+            <Label>Who are you telling?</Label>
+            <Select
+              aria-label="Who are you telling"
+              value={recipient}
+              onValueChange={(v) => { setRecipient(v as OwnerType) }}
+              options={[
+                { value: 'paul', label: 'Paul' },
+                { value: 'heather', label: 'Heather' },
+                { value: 'external', label: 'Someone else' },
+              ]}
+            />
+          </div>
+        ) : null}
+
         <div>
           <Label htmlFor="report-note">What are you telling them?</Label>
           <Textarea
@@ -128,6 +152,15 @@ export function ReportBackSheet({
           <Button
             variant="primary"
             onClick={() => {
+              // Record who it was for, so the loop has two ends rather than one.
+              if (needsRecipient) {
+                save.mutate({
+                  id: commitment.id,
+                  project_id: commitment.project_id,
+                  title: commitment.title,
+                  requested_by: recipient,
+                })
+              }
               reportBack.mutate({ id: commitment.id, note: note.trim() || null })
               onOpenChange(false)
               // The sheet has to be on its way out before the confetti fires,

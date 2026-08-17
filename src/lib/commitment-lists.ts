@@ -22,10 +22,12 @@ export function partition(commitments: CommitmentRow[]) {
   // you did the work rather than jumping to the top the instant you tick them:
   // the loop should close where your eye already is, not somewhere you have to
   // go looking. Anything older surfaces in Report back instead.
+  // No requester requirement: most commitments are created without one, and
+  // gating on a field nobody filled in means ticking something off just makes
+  // it disappear. The sheet asks who when it isn't recorded.
   const doneTodayOwing = commitments.filter(
     (c) =>
       c.status === 'done' &&
-      c.requested_by !== null &&
       c.reported_back_at === null &&
       (c.completed_at ?? '').slice(0, 10) === today
   )
@@ -54,6 +56,8 @@ export function partition(commitments: CommitmentRow[]) {
       .filter(
         (c) =>
           c.status === 'done' &&
+          // Older unreported work surfaces at the top only when someone is
+          // actually waiting — otherwise finishing a private task would nag.
           c.requested_by !== null &&
           c.reported_back_at === null &&
           // Today's are already visible where they were completed; showing them
