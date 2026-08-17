@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Inbox, Plus } from 'lucide-react'
+import { CalendarDays, Inbox, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
@@ -14,15 +14,10 @@ import {
   partition,
   useCommitments,
   useCompleteCommitment,
-  useConfirmCommitment,
   useLogNudge,
 } from '@/hooks/useCommitments'
 import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
-import { toast } from 'sonner'
-
-import { celebrate } from '@/lib/celebrate'
-import { daysAwaiting } from '@/lib/commitment-lists'
 import { formatEventTime } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
 
@@ -30,6 +25,11 @@ import type { CommitmentRow } from '@/types/models'
  * Today — the cadence of trust, top to bottom.
  *
  *   Report back   someone is waiting to hear from you  <- first, on purpose
+ *
+ * Deliberately absent: anything already reported and waiting on the other
+ * person to confirm. Once you have told them it is their move, and a list you
+ * cannot act on is someone else's to-do list on your screen. That state lives
+ * where it can be acted on — Paul's view — and is counted on the Scorecard.
  *   Capture       receive the commandment (fastest thing in the app)
  *   Overdue       what you should already have done
  *   Due today     what you're doing now
@@ -48,7 +48,6 @@ export function Today() {
   const capture = useCapture(session?.user.id)
   const complete = useCompleteCommitment()
   const nudge = useLogNudge()
-  const confirm = useConfirmCommitment()
   const dismiss = useDismissInboxItem()
 
   const [draft, setDraft] = useState('')
@@ -211,46 +210,6 @@ export function Today() {
                 Finished, but the person who asked hasn&rsquo;t been told.
               </p>
             </section>
-          ) : null}
-
-          {/* Sent, but unanswered. A report that vanishes the moment you send
-              it teaches you that sending is the finish line — and it isn't.
-              This keeps the loop visible until they close it. */}
-          {lists.awaitingConfirmation.length > 0 ? (
-            <Section title="Waiting on a yes" count={lists.awaitingConfirmation.length}>
-              <Card className="p-1">
-                {lists.awaitingConfirmation.map((c) => {
-                  const days = daysAwaiting(c) ?? 0
-                  return (
-                    <Row key={c.id} className="items-center">
-                      <Clock className="size-4 shrink-0 text-text-3" aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        <p className="t-item line-clamp-2 text-pretty">{c.title}</p>
-                        <p className="t-meta">
-                          Told {c.requested_by === 'paul' ? 'Paul' : c.requested_by === 'heather' ? 'Heather' : 'them'}
-                          {days > 0 ? ` · ${String(days)}d ago` : ' · today'}
-                        </p>
-                      </div>
-                      {/* Most confirmations happen in person or by reply, so
-                          Reed can log one he already received. Recorded as
-                          second-hand, not as though they clicked it. */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(event) => {
-                          const r = event.currentTarget.getBoundingClientRect()
-                          confirm.mutate({ id: c.id, inApp: false })
-                          celebrate({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
-                          toast.success('Loop closed')
-                        }}
-                      >
-                        They said yes
-                      </Button>
-                    </Row>
-                  )
-                })}
-              </Card>
-            </Section>
           ) : null}
 
           <List

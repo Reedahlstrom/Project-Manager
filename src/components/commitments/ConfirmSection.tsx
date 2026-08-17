@@ -133,7 +133,7 @@ export function ConfirmSection({
                       celebrate({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
                     }}
                   >
-                    It&rsquo;s good
+                    Looks good
                   </Button>
                   <Button
                     variant="outline"
