@@ -20,7 +20,13 @@ const WHO: Record<OwnerType, string> = {
  * something Paul asked for that he still hasn't heard about is not finished in
  * any sense that matters, and it says so here rather than only on Today.
  */
-export function DoneList({ commitments }: { commitments: CommitmentRow[] }) {
+export function DoneList({
+  commitments,
+  onReport,
+}: {
+  commitments: CommitmentRow[]
+  onReport: (c: CommitmentRow) => void
+}) {
   const reportBack = useReportBack()
 
   if (commitments.length === 0) {
@@ -55,6 +61,9 @@ export function DoneList({ commitments }: { commitments: CommitmentRow[] }) {
                   closed ? (
                     <Badge tone="green">
                       Reported to {WHO[c.requested_by as OwnerType]}
+                      {c.reported_back_at
+                        ? ' ' + new Date(c.reported_back_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                        : ''}
                     </Badge>
                   ) : (
                     <Badge tone="amber">
@@ -65,15 +74,19 @@ export function DoneList({ commitments }: { commitments: CommitmentRow[] }) {
                   <span className="t-meta">Self-directed</span>
                 )}
               </div>
+
+              {/* The receipt. Without this, "reported" is a claim; with it,
+                  there is a record of what was said and when. */}
+              {closed && c.report_note ? (
+                <p className="mt-1.5 border-l-2 border-border pl-2.5 text-[13px] leading-relaxed text-text-2">
+                  {c.report_note}
+                </p>
+              ) : null}
             </div>
 
             {owed && !closed ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { reportBack.mutate({ id: c.id, note: null }) }}
-              >
-                Mark reported
+              <Button variant="secondary" size="sm" onClick={() => { onReport(c) }}>
+                Report back
               </Button>
             ) : owed && closed ? (
               // Reversible: marking it reported by accident shouldn't be permanent.

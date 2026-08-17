@@ -2,6 +2,7 @@ import { CalendarDays, Inbox, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
+import { ReportBackSheet } from '@/components/commitments/ReportBackSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { Page, Section } from '@/components/Page'
 import { CommitmentItem } from '@/components/today/CommitmentItem'
@@ -14,7 +15,6 @@ import {
   useCommitments,
   useCompleteCommitment,
   useLogNudge,
-  useReportBack,
 } from '@/hooks/useCommitments'
 import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
@@ -24,11 +24,11 @@ import type { CommitmentRow } from '@/types/models'
 /**
  * Today — the cadence of trust, top to bottom.
  *
+ *   Report back   someone is waiting to hear from you  <- first, on purpose
  *   Capture       receive the commandment (fastest thing in the app)
  *   Overdue       what you should already have done
  *   Due today     what you're doing now
  *   Chase these   someone owes you
- *   Report back   someone is waiting to hear from you
  *
  * Empty sections collapse to a single line rather than a card, so a quiet day
  * doesn't cost six screens of scrolling to discover there's nothing to do.
@@ -43,13 +43,13 @@ export function Today() {
   const capture = useCapture(session?.user.id)
   const complete = useCompleteCommitment()
   const nudge = useLogNudge()
-  const reportBack = useReportBack()
   const dismiss = useDismissInboxItem()
 
   const [draft, setDraft] = useState('')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
+  const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
   const captureRef = useRef<HTMLInputElement>(null)
 
   const projectsById = useMemo(
@@ -60,7 +60,7 @@ export function Today() {
 
   // One flat ordered list so j/k moves through the screen the way it reads.
   const focusable = useMemo(
-    () => [...lists.overdue, ...lists.dueToday, ...lists.chase, ...lists.reportBack],
+    () => [...lists.reportBack, ...lists.overdue, ...lists.dueToday, ...lists.chase],
     [lists]
   )
   const [focusIndex, setFocusIndex] = useState(-1)
@@ -169,6 +169,41 @@ export function Today() {
         <p className="t-meta px-3">Loading…</p>
       ) : (
         <>
+          {/* First on the screen, deliberately. An overdue commitment is at
+              least visible to the person waiting; work you finished and never
+              mentioned is invisible to them — they still think you haven't
+              done it. That is the quieter way trust erodes, so it goes above
+              everything else. */}
+          {lists.reportBack.length > 0 ? (
+            <section className="mb-7">
+              <div className="mb-2 flex items-baseline gap-2 px-3">
+                <h2 className="t-section text-accent">Report back</h2>
+                <span className="t-meta tabular-nums">{lists.reportBack.length}</span>
+              </div>
+              <Card className="border-accent/30 bg-accent-muted p-1">
+                {lists.reportBack.map((commitment) => (
+                  <CommitmentItem
+                    key={commitment.id}
+                    commitment={commitment}
+                    project={projectsById.get(commitment.project_id)}
+                    focused={focusIndex === nextFocusIndex()}
+                    variant="report"
+                    onReportBack={() => {
+                      setReporting(commitment)
+                    }}
+                    onEdit={() => {
+                      setEditing(commitment)
+                      setSheetOpen(true)
+                    }}
+                  />
+                ))}
+              </Card>
+              <p className="mt-1.5 px-3 t-meta">
+                Finished, but the person who asked hasn&rsquo;t been told.
+              </p>
+            </section>
+          ) : null}
+
           <List
             title="Overdue"
             items={lists.overdue}
@@ -228,28 +263,6 @@ export function Today() {
                 }}
                 onNudge={() => {
                   nudge.mutate({ id: commitment.id })
-                }}
-                onEdit={() => {
-                  setEditing(commitment)
-                  setSheetOpen(true)
-                }}
-              />
-            )}
-          />
-
-          <List
-            title="Report back"
-            items={lists.reportBack}
-            emptyLine="Every loop is closed."
-            render={(commitment) => (
-              <CommitmentItem
-                key={commitment.id}
-                commitment={commitment}
-                project={projectsById.get(commitment.project_id)}
-                focused={focusIndex === nextFocusIndex()}
-                variant="report"
-                onReportBack={() => {
-                  reportBack.mutate({ id: commitment.id, note: null })
                 }}
                 onEdit={() => {
                   setEditing(commitment)
@@ -320,6 +333,14 @@ export function Today() {
         </>
       )}
 
+      <ReportBackSheet
+        open={reporting !== undefined}
+        onOpenChange={(o) => {
+          if (!o) setReporting(undefined)
+        }}
+        commitment={reporting}
+        project={reporting ? projectsById.get(reporting.project_id) : undefined}
+      />
       <CommitmentSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}

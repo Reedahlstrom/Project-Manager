@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
+import { ReportBackSheet } from '@/components/commitments/ReportBackSheet'
 import { DocumentsSection } from '@/components/projects/DocumentsSection'
 import { DoneList } from '@/components/projects/DoneList'
 import { EventSheet } from '@/components/projects/EventSheet'
@@ -42,6 +43,7 @@ export function ProjectDetail() {
   const [editingCommitment, setEditingCommitment] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
   const [seedDetail, setSeedDetail] = useState<string | undefined>(undefined)
+  const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
   const [eventSheet, setEventSheet] = useState(false)
   const [editingEvent, setEditingEvent] = useState<EventRow | undefined>(undefined)
 
@@ -180,7 +182,7 @@ export function ProjectDetail() {
       </Section>
 
       <Section title={awaitingReport > 0 ? `Done · ${String(awaitingReport)} to report back` : 'Done'} count={done.length}>
-        <DoneList commitments={done} />
+        <DoneList commitments={done} onReport={setReporting} />
       </Section>
 
       <Section title="Dates" count={projectEvents.length}>
@@ -225,6 +227,14 @@ export function ProjectDetail() {
         <DocumentsSection projectId={project.id} />
       </Section>
 
+      <ReportBackSheet
+        open={reporting !== undefined}
+        onOpenChange={(o) => {
+          if (!o) setReporting(undefined)
+        }}
+        commitment={reporting}
+        project={project}
+      />
       <ProjectSheet open={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <CommitmentSheet
         open={commitmentSheet}

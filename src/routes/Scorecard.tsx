@@ -1,12 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Page } from '@/components/Page'
 import { HealthDot } from '@/components/ui/Badge'
+import { ReportBackSheet } from '@/components/commitments/ReportBackSheet'
+import { Button } from '@/components/ui/Button'
 import { Card, Row } from '@/components/ui/Card'
 import { useCommitments } from '@/hooks/useCommitments'
 import { useProjects } from '@/hooks/useProjects'
 import { todayISO } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import type { CommitmentRow } from '@/types/models'
 
 /**
  * Computed, never self-reported.
@@ -18,6 +21,7 @@ import { cn } from '@/lib/utils'
 export function Scorecard() {
   const { data: commitments = [] } = useCommitments()
   const { data: projects = [] } = useProjects()
+  const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
 
   const stats = useMemo(() => {
     const today = todayISO()
@@ -85,6 +89,15 @@ export function Scorecard() {
       }))
   }, [projects, commitments])
 
+  // A count you cannot act on is trivia. These are the actual rows.
+  const openLoops = useMemo(
+    () =>
+      commitments
+        .filter((c) => c.status === 'done' && c.requested_by !== null && c.reported_back_at === null)
+        .sort((a, b) => (a.completed_at ?? '').localeCompare(b.completed_at ?? '')),
+    [commitments]
+  )
+
   return (
     <Page title="Scorecard">
       <div className="mb-7 grid gap-3 sm:grid-cols-2">
@@ -122,6 +135,33 @@ export function Scorecard() {
         />
       </div>
 
+      {openLoops.length > 0 ? (
+        <section className="mb-7">
+          <div className="mb-2 flex items-baseline gap-2 px-1">
+            <h2 className="t-section text-accent">Waiting on a report from you</h2>
+            <span className="t-meta tabular-nums">{openLoops.length}</span>
+          </div>
+          <Card className="border-accent/30 bg-accent-muted p-1">
+            {openLoops.map((c) => (
+              <Row key={c.id} className="items-center">
+                <div className="min-w-0 flex-1">
+                  <p className="t-item line-clamp-2 text-pretty">{c.title}</p>
+                  <p className="t-meta">
+                    {projects.find((p) => p.id === c.project_id)?.name}
+                    {c.completed_at
+                      ? ` · finished ${new Date(c.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                      : ''}
+                  </p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => { setReporting(c) }}>
+                  Report back
+                </Button>
+              </Row>
+            ))}
+          </Card>
+        </section>
+      ) : null}
+
       <h2 className="mb-2 px-1 t-section">By project, this quarter</h2>
       <Card className="p-1">
         {perProject.map(({ project, closed, open }) => (
@@ -137,6 +177,15 @@ export function Scorecard() {
       <p className="mt-4 px-1 t-meta">
         These only mean something after a few weeks of real use.
       </p>
+
+      <ReportBackSheet
+        open={reporting !== undefined}
+        onOpenChange={(o) => {
+          if (!o) setReporting(undefined)
+        }}
+        commitment={reporting}
+        project={projects.find((p) => p.id === reporting?.project_id)}
+      />
     </Page>
   )
 }
