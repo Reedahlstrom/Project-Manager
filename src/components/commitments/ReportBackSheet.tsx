@@ -7,6 +7,7 @@ import { Sheet } from '@/components/ui/Dialog'
 import { Textarea } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Select'
 import { useReportBack } from '@/hooks/useCommitments'
+import { celebrate } from '@/lib/celebrate'
 import type { CommitmentRow, OwnerType, ProjectRow } from '@/types/models'
 
 const WHO: Record<OwnerType, string> = {
@@ -34,11 +35,14 @@ export function ReportBackSheet({
   onOpenChange,
   commitment,
   project,
+  burstFrom,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   commitment: CommitmentRow | undefined
   project: ProjectRow | undefined
+  /** Where the tap happened, so the celebration comes out of the button. */
+  burstFrom?: { x: number; y: number } | undefined
 }) {
   const reportBack = useReportBack()
   const [note, setNote] = useState('')
@@ -126,7 +130,14 @@ export function ReportBackSheet({
             onClick={() => {
               reportBack.mutate({ id: commitment.id, note: note.trim() || null })
               onOpenChange(false)
-              toast.success(`Loop closed with ${who}`, { description: commitment.title })
+              // The sheet has to be on its way out before the confetti fires,
+              // or it lands behind the panel and you miss the whole thing.
+              window.setTimeout(() => {
+                celebrate(burstFrom)
+              }, 180)
+              toast.success(`Told ${who} — now waiting on their yes`, {
+                description: commitment.title,
+              })
             }}
           >
             Mark as reported

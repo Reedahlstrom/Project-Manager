@@ -19,6 +19,9 @@ import {
 } from '@/hooks/useCommitments'
 import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
+import { toast } from 'sonner'
+
+import { celebrate } from '@/lib/celebrate'
 import { daysAwaiting } from '@/lib/commitment-lists'
 import { formatEventTime } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
@@ -53,6 +56,8 @@ export function Today() {
   const [editing, setEditing] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
   const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
+  // Where the tap happened, so the confetti comes out of the button.
+  const [burstFrom, setBurstFrom] = useState<{ x: number; y: number } | undefined>(undefined)
   const captureRef = useRef<HTMLInputElement>(null)
 
   const projectsById = useMemo(
@@ -191,7 +196,8 @@ export function Today() {
                     project={projectsById.get(commitment.project_id)}
                     focused={focusIndex === nextFocusIndex()}
                     variant="report"
-                    onReportBack={() => {
+                    onReportBack={(origin) => {
+                      setBurstFrom(origin)
                       setReporting(commitment)
                     }}
                     onEdit={() => {
@@ -231,8 +237,11 @@ export function Today() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
+                        onClick={(event) => {
+                          const r = event.currentTarget.getBoundingClientRect()
                           confirm.mutate({ id: c.id, inApp: false })
+                          celebrate({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+                          toast.success('Loop closed')
                         }}
                       >
                         They said yes
@@ -255,6 +264,10 @@ export function Today() {
                 project={projectsById.get(commitment.project_id)}
                 focused={focusIndex === nextFocusIndex()}
                 variant="overdue"
+                onReportBack={(origin) => {
+                  setBurstFrom(origin)
+                  setReporting(commitment)
+                }}
                 onComplete={() => {
                   complete(commitment)
                 }}
@@ -276,6 +289,10 @@ export function Today() {
                 commitment={commitment}
                 project={projectsById.get(commitment.project_id)}
                 focused={focusIndex === nextFocusIndex()}
+                onReportBack={(origin) => {
+                  setBurstFrom(origin)
+                  setReporting(commitment)
+                }}
                 onComplete={() => {
                   complete(commitment)
                 }}
@@ -380,6 +397,7 @@ export function Today() {
         }}
         commitment={reporting}
         project={reporting ? projectsById.get(reporting.project_id) : undefined}
+        burstFrom={burstFrom}
       />
       <CommitmentSheet
         open={sheetOpen}

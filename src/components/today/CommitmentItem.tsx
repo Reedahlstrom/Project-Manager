@@ -31,22 +31,41 @@ export function CommitmentItem({
   variant?: 'default' | 'overdue' | 'chase' | 'report'
   onComplete?: (() => void) | undefined
   onNudge?: (() => void) | undefined
-  onReportBack?: (() => void) | undefined
+  onReportBack?: ((origin: { x: number; y: number }) => void) | undefined
   onEdit?: (() => void) | undefined
 }) {
   const waitedDays = daysSince(commitment.last_nudged_at ?? commitment.created_at)
+
+  // Ticked off, but someone is still waiting to hear about it. The row stays
+  // where it was and grows a second action, so the whole loop happens in one
+  // place instead of sending you to another section.
+  const owesReport =
+    commitment.status === 'done' &&
+    commitment.requested_by !== null &&
+    commitment.reported_back_at === null
+
+  const who = commitment.requested_by
+    ? (OWNER_LABEL[commitment.requested_by] ?? commitment.requested_by)
+    : ''
 
   return (
     <Row
       className={cn(
         'items-center',
-        // Focus is a ring, not a background change — the background already
-        // carries meaning here.
-        focused && 'ring-1 ring-accent ring-inset'
+        focused && 'ring-1 ring-accent ring-inset',
+        owesReport && variant !== 'report' && 'bg-accent-muted'
       )}
       data-commitment-id={commitment.id}
     >
-      {variant !== 'report' ? (
+      {variant === 'report' ? (
+        <MessageSquareReply className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
+      ) : owesReport ? (
+        // Step one is done. The tick stays filled so the progress is visible,
+        // and the row is clearly not finished — because it isn't.
+        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[5px] bg-green text-white">
+          <Check className="size-3" />
+        </span>
+      ) : (
         <Tooltip content="Mark done (x)">
           <button
             type="button"
@@ -61,30 +80,24 @@ export function CommitmentItem({
             <Check className="size-3" />
           </button>
         </Tooltip>
-      ) : (
-        <MessageSquareReply className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
       )}
 
-      <button
-        type="button"
-        onClick={onEdit}
-        className="min-w-0 flex-1 text-left"
-      >
-        {/* Wrap to two lines rather than truncate. On a phone a truncated
-            commitment reads as "Send the pre-read packet to every con…", which
-            tells you nothing about what you actually have to do. */}
-        <p className={cn('t-item line-clamp-2 text-pretty', variant === 'overdue' && 'text-text')}>
+      <button type="button" onClick={onEdit} className="min-w-0 flex-1 text-left">
+        <p
+          className={cn(
+            't-item line-clamp-2 text-pretty',
+            variant === 'overdue' && 'text-text',
+            owesReport && 'text-text-2 line-through decoration-text-3/40'
+          )}
+        >
           {commitment.title}
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {/* Truncated, not wrapped. A long project name spilling onto a second
-              line pushed the badges to a third and made the row three deep on a
-              phone — the metadata should stay one line under the title. */}
           {project ? (
             <span className="max-w-[60%] truncate t-meta">{project.name}</span>
           ) : null}
 
-          {variant === 'overdue' && commitment.due_date ? (
+          {variant === 'overdue' && commitment.due_date && !owesReport ? (
             <Badge tone="red">{relativeDays(commitment.due_date)}</Badge>
           ) : null}
 
@@ -102,12 +115,15 @@ export function CommitmentItem({
           ) : null}
 
           {variant === 'report' && commitment.requested_by ? (
-            <Badge tone="accent">
-              for {OWNER_LABEL[commitment.requested_by] ?? commitment.requested_by}
-            </Badge>
+            <Badge tone="accent">for {who}</Badge>
           ) : null}
 
-          {variant === 'default' && commitment.due_date ? (
+          {/* Says what to do next, not just what state it's in. */}
+          {owesReport && variant !== 'report' ? (
+            <Badge tone="accent">Now tell {who}</Badge>
+          ) : null}
+
+          {variant === 'default' && commitment.due_date && !owesReport ? (
             <span className="t-meta">{relativeDays(commitment.due_date)}</span>
           ) : null}
         </div>
@@ -120,9 +136,17 @@ export function CommitmentItem({
         </Button>
       ) : null}
 
-      {variant === 'report' ? (
-        <Button variant="ghost" size="sm" onClick={onReportBack}>
-          Reported
+      {/* The second tap, in the same row as the first. */}
+      {owesReport || variant === 'report' ? (
+        <Button
+          variant={owesReport && variant !== 'report' ? 'primary' : 'ghost'}
+          size="sm"
+          onClick={(event) => {
+            const r = event.currentTarget.getBoundingClientRect()
+            onReportBack?.({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+          }}
+        >
+          Report back
         </Button>
       ) : null}
     </Row>

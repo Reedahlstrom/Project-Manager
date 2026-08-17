@@ -18,12 +18,28 @@ export function partition(commitments: CommitmentRow[]) {
   const today = todayISO()
   const open = commitments.filter((c) => c.status !== 'done' && c.status !== 'dropped')
 
+  // Finished today and still owing a report. These stay in the section where
+  // you did the work rather than jumping to the top the instant you tick them:
+  // the loop should close where your eye already is, not somewhere you have to
+  // go looking. Anything older surfaces in Report back instead.
+  const doneTodayOwing = commitments.filter(
+    (c) =>
+      c.status === 'done' &&
+      c.requested_by !== null &&
+      c.reported_back_at === null &&
+      (c.completed_at ?? '').slice(0, 10) === today
+  )
+
   return {
     overdue: open
       .filter((c) => c.due_date !== null && c.due_date < today)
       .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '')),
 
-    dueToday: open.filter((c) => c.due_date === today),
+    dueToday: [
+      ...open.filter((c) => c.due_date === today),
+      // Ticked a moment ago, now showing a Report back action in place.
+      ...doneTodayOwing.filter((c) => c.due_date === today || c.due_date === null),
+    ],
 
     // Waiting on someone else, and the follow-up date has arrived.
     chase: open
@@ -35,7 +51,15 @@ export function partition(commitments: CommitmentRow[]) {
     // Done, someone asked for it, and they still don't know it's finished.
     // Your move.
     reportBack: commitments
-      .filter((c) => c.status === 'done' && c.requested_by !== null && c.reported_back_at === null)
+      .filter(
+        (c) =>
+          c.status === 'done' &&
+          c.requested_by !== null &&
+          c.reported_back_at === null &&
+          // Today's are already visible where they were completed; showing them
+          // twice would make the screen look like it had double the work.
+          !doneTodayOwing.includes(c)
+      )
       .sort((a, b) => (a.completed_at ?? '').localeCompare(b.completed_at ?? '')),
 
     // Reported, and still unanswered. Their move — but the loop is open until

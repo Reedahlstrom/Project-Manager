@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { useAuth } from '@/contexts/auth-context'
 import { useConfirmCommitment } from '@/hooks/useCommitments'
+import { celebrate } from '@/lib/celebrate'
 import { daysAwaiting } from '@/lib/commitment-lists'
 import type { CommitmentRow, ProjectRow } from '@/types/models'
 
@@ -121,12 +122,15 @@ export function ConfirmSection({
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => {
+                    onClick={(event) => {
+                      const r = event.currentTarget.getBoundingClientRect()
                       confirm.mutate({
                         id: c.id,
                         byId: profile?.id ?? null,
                         inApp: true,
                       })
+                      // This is the actual end of the loop, not the middle.
+                      celebrate({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
                     }}
                   >
                     It&rsquo;s good
