@@ -33,8 +33,39 @@ export function partition(commitments: CommitmentRow[]) {
       .sort((a, b) => (a.follow_up_date ?? '').localeCompare(b.follow_up_date ?? '')),
 
     // Done, someone asked for it, and they still don't know it's finished.
+    // Your move.
     reportBack: commitments
       .filter((c) => c.status === 'done' && c.requested_by !== null && c.reported_back_at === null)
       .sort((a, b) => (a.completed_at ?? '').localeCompare(b.completed_at ?? '')),
+
+    // Reported, and still unanswered. Their move — but the loop is open until
+    // they answer, so it stays visible rather than disappearing the moment you
+    // send the message. Oldest first: a report that has gone unanswered for a
+    // week is the one worth chasing.
+    awaitingConfirmation: commitments
+      .filter((c) => c.reported_back_at !== null && c.confirmed_at === null)
+      .sort((a, b) => (a.reported_back_at ?? '').localeCompare(b.reported_back_at ?? '')),
   }
+}
+
+/**
+ * The three acts, by two people.
+ *
+ * `reported` is deliberately not the end state. It is something Reed sets about
+ * himself, so on its own it is self-attested — and the whole point of the
+ * cadence is that the person who asked is the one who closes it.
+ */
+export type LoopState = 'not-owed' | 'to-report' | 'awaiting' | 'closed'
+
+export function loopState(c: CommitmentRow): LoopState {
+  if (c.requested_by === null) return 'not-owed'
+  if (c.reported_back_at === null) return 'to-report'
+  if (c.confirmed_at === null) return 'awaiting'
+  return 'closed'
+}
+
+/** How long a report has gone unanswered, in whole days. */
+export function daysAwaiting(c: CommitmentRow): number | null {
+  if (!c.reported_back_at || c.confirmed_at) return null
+  return Math.floor((Date.now() - new Date(c.reported_back_at).getTime()) / 86_400_000)
 }

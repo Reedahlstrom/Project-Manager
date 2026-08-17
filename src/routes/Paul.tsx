@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 
+import { ConfirmSection } from '@/components/commitments/ConfirmSection'
 import { Page } from '@/components/Page'
 import { Badge, HealthDot } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -54,6 +55,21 @@ export function Paul() {
 
   const active = projects.filter((p) => p.status === 'active')
 
+  // Reed reported these and is waiting to hear back. This is the only thing on
+  // the screen that nobody else can do for him.
+  const toConfirm = useMemo(
+    () =>
+      commitments
+        .filter(
+          (c) =>
+            c.requested_by === 'paul' &&
+            c.reported_back_at !== null &&
+            c.confirmed_at === null
+        )
+        .sort((a, b) => (a.reported_back_at ?? '').localeCompare(b.reported_back_at ?? '')),
+    [commitments]
+  )
+
   /** "Talk to Reed about this" — hands it back rather than leaving it stuck. */
   function handOff(c: CommitmentRow) {
     save.mutate({
@@ -69,6 +85,8 @@ export function Paul() {
 
   return (
     <Page title="This week">
+      <ConfirmSection commitments={toConfirm} projects={projects} />
+
       <section className="mb-8">
         <h2 className="mb-2 px-1 t-section">Only you can do these</h2>
         {his.length === 0 ? (

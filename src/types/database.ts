@@ -179,6 +179,10 @@ export type Database = {
         Row: {
           blocked_reason: string | null
           completed_at: string | null
+          confirmation_note: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_in_app: boolean
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -204,6 +208,10 @@ export type Database = {
         Insert: {
           blocked_reason?: string | null
           completed_at?: string | null
+          confirmation_note?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_in_app?: boolean
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -229,6 +237,10 @@ export type Database = {
         Update: {
           blocked_reason?: string | null
           completed_at?: string | null
+          confirmation_note?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_in_app?: boolean
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -252,6 +264,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "commitments_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "commitments_created_by_fkey"
             columns: ["created_by"]
