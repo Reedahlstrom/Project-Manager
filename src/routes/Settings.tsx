@@ -13,6 +13,7 @@ import {
   useRoutingRules,
   useRunSync,
   useSaveRule,
+  useSyncSchedule,
 } from '@/hooks/useIntegrations'
 import { useProjects } from '@/hooks/useProjects'
 import type { Database } from '@/types/models'
@@ -33,6 +34,7 @@ export function Settings() {
   const save = useSaveRule()
   const remove = useDeleteRule()
   const run = useRunSync()
+  const { data: schedule = [] } = useSyncSchedule()
 
   const [kind, setKind] = useState<RuleKind>('domain')
   const [value, setValue] = useState('')
@@ -56,6 +58,7 @@ export function Settings() {
             busy={run.isPending}
             onRun={() => { run.mutate('sync-calendar') }}
             runLabel="Sync calendar"
+            schedule={schedule.find((j) => j.job_name === 'sync-calendar')}
           />
           <Connection
             icon={<Mail className="size-4 text-text-3" aria-hidden />}
@@ -65,6 +68,7 @@ export function Settings() {
             busy={run.isPending}
             onRun={() => { run.mutate('triage-email') }}
             runLabel="Check email"
+            schedule={schedule.find((j) => j.job_name === 'triage-email')}
           />
         </div>
         <p className="mt-2 px-1 t-meta text-pretty">
@@ -178,6 +182,7 @@ function Connection({
   busy,
   onRun,
   runLabel,
+  schedule,
 }: {
   icon: React.ReactNode
   name: string
@@ -186,7 +191,16 @@ function Connection({
   busy: boolean
   onRun: () => void
   runLabel: string
+  schedule?: { schedule: string; active: boolean } | undefined
 }) {
+  // Turn a cron expression into something readable. Only the every-N-minutes
+  // shape is used here, so anything else falls back to the raw expression.
+  const every = /^\*\/(\d+) \* \* \* \*$/.exec(schedule?.schedule ?? '')?.[1]
+  const cadence = schedule?.active
+    ? every
+      ? `Runs itself every ${every} minutes`
+      : `Runs on ${schedule.schedule}`
+    : null
   return (
     <Card className="p-3.5">
       <div className="flex flex-wrap items-center gap-2">
@@ -203,8 +217,15 @@ function Connection({
           {busy ? 'Running…' : runLabel}
         </Button>
       </div>
+      {cadence ? (
+        <p className="mt-1.5 t-meta">{cadence}</p>
+      ) : (
+        <p className="mt-1.5 text-[13px] text-amber">
+          Not scheduled — this only runs when you press the button.
+        </p>
+      )}
       {lastRun ? (
-        <p className="mt-1.5 t-meta">Last run {new Date(lastRun).toLocaleString()}</p>
+        <p className="t-meta">Last run {new Date(lastRun).toLocaleString()}</p>
       ) : null}
       {/* The error is shown in full rather than summarised. "Something went
           wrong" on an integration is useless; the Google message usually says

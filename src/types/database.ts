@@ -1126,6 +1126,14 @@ export type Database = {
         Returns: boolean
       }
       storage_project_id: { Args: { object_name: string }; Returns: string }
+      sync_schedule: {
+        Args: never
+        Returns: {
+          active: boolean
+          job_name: string
+          schedule: string
+        }[]
+      }
     }
     Enums: {
       attendee_role: "host" | "attendee" | "speaker" | "optional"

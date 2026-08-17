@@ -19,6 +19,25 @@ export function useIntegrationState() {
   })
 }
 
+/**
+ * Whether the schedule is actually alive.
+ *
+ * A "last run" timestamp alone can't tell you whether the thing is still
+ * running or stopped three days ago — which is exactly how this broke the first
+ * time. Reading the cron schedule makes the difference visible.
+ */
+export function useSyncSchedule() {
+  return useQuery({
+    queryKey: ['sync_schedule'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('sync_schedule')
+      if (error) throw error
+      return data
+    },
+    staleTime: 60_000,
+  })
+}
+
 export function useRoutingRules() {
   return useQuery({
     queryKey: ['routing_rules'],
