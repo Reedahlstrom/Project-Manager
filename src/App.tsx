@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { NotFound } from '@/routes/NotFound'
 import { Paul } from '@/routes/Paul'
 import { People } from '@/routes/People'
+import { Playbook } from '@/routes/Playbook'
 import { ProjectDetail } from '@/routes/ProjectDetail'
 import { Projects } from '@/routes/Projects'
 import { Scorecard } from '@/routes/Scorecard'
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:slug" element={<ProjectDetail />} />
         <Route path="/people" element={<People />} />
+        <Route path="/playbook" element={<Playbook />} />
         <Route path="/scorecard" element={<Scorecard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />

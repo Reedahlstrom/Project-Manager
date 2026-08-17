@@ -913,6 +913,65 @@ export type Database = {
         }
         Relationships: []
       }
+      playbook: {
+        Row: {
+          area: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_go_to: boolean
+          link: string | null
+          name: string
+          note: string | null
+          sensitivity: Database["public"]["Enums"]["sensitivity"]
+          tags: string[]
+          updated_at: string
+          who: string | null
+        }
+        Insert: {
+          area?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_go_to?: boolean
+          link?: string | null
+          name: string
+          note?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          tags?: string[]
+          updated_at?: string
+          who?: string | null
+        }
+        Update: {
+          area?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_go_to?: boolean
+          link?: string | null
+          name?: string
+          note?: string | null
+          sensitivity?: Database["public"]["Enums"]["sensitivity"]
+          tags?: string[]
+          updated_at?: string
+          who?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playbook_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processed_messages: {
         Row: {
           decision: string | null
