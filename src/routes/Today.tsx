@@ -19,7 +19,7 @@ import {
 import { useAppendLine, useDailyNote } from '@/hooks/useDailyNote'
 import { useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
-import { formatEventTime } from '@/lib/dates'
+import { formatEventTime, todayISO } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
 
 /**
@@ -48,7 +48,9 @@ export function Today() {
   // Capture writes a line into today's note rather than a bare queue, so the
   // day itself leaves a record instead of just a to-do list.
   const append = useAppendLine()
-  const { data: dailyNote } = useDailyNote()
+  // Which day's note is on screen. Capture always writes to today.
+  const [noteDate, setNoteDate] = useState(todayISO())
+  const { data: dailyNote } = useDailyNote(noteDate)
   const [fromNote, setFromNote] = useState(false)
   const complete = useCompleteCommitment()
   const nudge = useLogNudge()
@@ -176,15 +178,18 @@ export function Today() {
         </p>
       </form>
 
-      <Section title="Today's notes">
+      <Section title="Notes">
         <DailyNote
+          date={noteDate}
+          onDateChange={setNoteDate}
           onPromote={(line) => {
             setFromNote(true)
             openNew(line)
           }}
         />
         <p className="mt-1.5 px-3 t-meta">
-          Enter for a new line. Tap + on any line to make it a commitment.
+          <code>#</code> for a heading · <code>[]</code> or <code>-</code> for a checkbox ·
+          + on any line to track it
         </p>
       </Section>
 

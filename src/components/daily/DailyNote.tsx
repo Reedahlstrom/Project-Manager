@@ -1,31 +1,41 @@
-import { Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { Card } from '@/components/ui/Card'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { useAuth } from '@/contexts/auth-context'
 import { toLines, useDailyNote, useSaveDailyNote } from '@/hooks/useDailyNote'
-import { todayISO } from '@/lib/dates'
+import { fromISO, toISO, todayISO } from '@/lib/dates'
+import {
+  autoConvert,
+  formatLine,
+  nextKind,
+  parseLine,
+  type LineKind,
+} from '@/lib/note-lines'
 import { cn } from '@/lib/utils'
 
 /**
- * The day's note: one line per thought, and a + to turn any of them into a
- * commitment.
+ * The day's note — notes, checklist and follow-ups in one place.
  *
- * Line-based rather than a single textarea, because the whole point is that a
- * line is a unit you can act on. Enter makes the next one, Backspace on an
- * empty line removes it — the shape people already expect from a notes app,
- * so nothing has to be learned.
+ * Modelled on the notes app Reed already writes in: a date at the top, headings,
+ * checkbox lines that continue when you press Enter, and plain lines for
+ * everything that isn't a task. Nothing has to be learned because the prefixes
+ * (`# `, `[] `, `- `) are the ones people type by habit anyway.
  *
- * Saving is debounced and silent. A note you have to remember to save is a note
- * you lose.
+ * Two things it does that a notes app can't: ticking a box is a checklist you
+ * keep inside the day, and any line can graduate into a tracked commitment with
+ * a follow-up — so a thought, a task and a thing you owe someone all live in the
+ * same place instead of three.
  */
 export function DailyNote({
-  date = todayISO(),
+  date,
+  onDateChange,
   onPromote,
   readOnly = false,
 }: {
-  date?: string
+  date: string
+  onDateChange: (date: string) => void
   onPromote: (line: string) => void
   readOnly?: boolean
 }) {
@@ -36,11 +46,10 @@ export function DailyNote({
   const [lines, setLines] = useState<string[]>([''])
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const dirty = useRef(false)
-  // Focus the line we just created, once React has rendered it.
   const focusNext = useRef<number | null>(null)
 
-  // Adopt server state only while the user isn't mid-edit, so a background
-  // refetch can't yank text out from under the cursor.
+  // Adopt server state only while not mid-edit, so a background refetch can't
+  // pull text out from under the cursor.
   useEffect(() => {
     if (dirty.current) return
     setLines(toLines(note?.body ?? ''))
@@ -52,7 +61,6 @@ export function DailyNote({
     focusNext.current = null
   })
 
-  // Debounced autosave.
   useEffect(() => {
     if (!dirty.current || !profile) return
     const id = window.setTimeout(() => {
@@ -62,7 +70,6 @@ export function DailyNote({
     return () => {
       window.clearTimeout(id)
     }
-    // `save` is a stable mutation object; including it would re-arm the timer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, profile])
 
@@ -71,25 +78,71 @@ export function DailyNote({
     setLines(next)
   }
 
+  function setLine(i: number, kind: LineKind, text: string) {
+    const next = [...lines]
+    next[i] = formatLine(kind, text)
+    edit(next)
+  }
+
+  function onChange(i: number, raw: string) {
+    const parsed = parseLine(lines[i] ?? '')
+
+    // Typing "# " or "[] " converts the line in place — no toolbar needed.
+    const converted = parsed.kind === 'text' ? autoConvert(raw) : null
+    if (converted) {
+      setLine(i, converted.kind, converted.text)
+      return
+    }
+
+    let clean = raw
+
+    // Typing fast can outrun React's controlled value, so the prefix sometimes
+    // arrives back in `raw` and would be stored twice. Strip whatever the line
+    // already carries.
+    if (parsed.kind === 'heading' && clean.startsWith('# ')) clean = clean.slice(2)
+    else if (parsed.kind === 'todo') clean = clean.replace(/^\[\s?\]\s?/, '')
+    else if (parsed.kind === 'done') clean = clean.replace(/^\[[xX]\]\s?/, '')
+
+    // Conversion happens on "[]" or "#", so the space the user typed as part of
+    // the prefix lands at the front of the text. Swallow it.
+    if (parsed.text === '') clean = clean.replace(/^\s+/, '')
+
+    setLine(i, parsed.kind, clean)
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>, i: number) {
+    const parsed = parseLine(lines[i] ?? '')
+
     if (e.key === 'Enter') {
       e.preventDefault()
+      // Enter on an empty checklist item ends the list rather than adding
+      // another empty one — the standard escape hatch.
+      if ((parsed.kind === 'todo' || parsed.kind === 'done') && parsed.text === '') {
+        setLine(i, 'text', '')
+        return
+      }
       const next = [...lines]
-      next.splice(i + 1, 0, '')
+      next.splice(i + 1, 0, formatLine(nextKind(parsed.kind), ''))
       edit(next)
       focusNext.current = i + 1
       return
     }
-    // Backspace on an empty line removes it and puts the cursor at the end of
-    // the line above — the standard behaviour, and the one that makes tidying
-    // up feel effortless.
-    if (e.key === 'Backspace' && lines[i] === '' && lines.length > 1) {
+
+    if (e.key === 'Backspace' && parsed.text === '') {
       e.preventDefault()
-      const next = lines.filter((_, n) => n !== i)
-      edit(next)
-      focusNext.current = Math.max(0, i - 1)
+      // Strip the prefix first, so one Backspace un-checkboxes and the next
+      // removes the line.
+      if (parsed.kind !== 'text') {
+        setLine(i, 'text', '')
+        return
+      }
+      if (lines.length > 1) {
+        edit(lines.filter((_, n) => n !== i))
+        focusNext.current = Math.max(0, i - 1)
+      }
       return
     }
+
     if (e.key === 'ArrowUp' && i > 0) {
       e.preventDefault()
       inputs.current[i - 1]?.focus()
@@ -100,69 +153,148 @@ export function DailyNote({
     }
   }
 
+  const isToday = date === todayISO()
+  const heading = isToday
+    ? 'Today'
+    : fromISO(date).toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      })
   const empty = lines.length === 1 && lines[0] === ''
 
+  function shift(days: number) {
+    const d = fromISO(date)
+    d.setDate(d.getDate() + days)
+    onDateChange(toISO(d))
+  }
+
   return (
-    <Card className="p-1.5">
+    <Card className="px-3 py-3">
+      <div className="mb-2 flex items-center justify-center gap-1">
+        <button
+          type="button"
+          onClick={() => { shift(-1) }}
+          aria-label="Previous day"
+          className="rounded-md p-1 text-text-3 transition-colors duration-150 hover:bg-surface-2 hover:text-text"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => { onDateChange(todayISO()) }}
+          className="min-w-[9rem] text-center t-meta transition-colors duration-150 hover:text-text"
+        >
+          {heading}
+        </button>
+        {/* Nothing to write on a day that hasn't happened. */}
+        <button
+          type="button"
+          onClick={() => { shift(1) }}
+          disabled={isToday}
+          aria-label="Next day"
+          className={cn(
+            'rounded-md p-1 transition-colors duration-150',
+            isToday
+              ? 'cursor-default text-transparent'
+              : 'text-text-3 hover:bg-surface-2 hover:text-text'
+          )}
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+
       {empty && readOnly ? (
-        <p className="px-2.5 py-2 t-meta">Nothing written this day.</p>
+        <p className="px-1 py-2 t-meta">Nothing written this day.</p>
       ) : (
-        lines.map((line, i) => (
-          <div key={i} className="group flex items-center gap-1.5 rounded-lg px-1.5 hover:bg-surface-2">
-            <span
-              className={cn(
-                'size-1.5 shrink-0 rounded-full transition-colors duration-150',
-                line.trim() ? 'bg-text-3' : 'bg-transparent'
-              )}
-              aria-hidden
-            />
+        lines.map((raw, i) => {
+          const { kind, text } = parseLine(raw)
+          const checkable = kind === 'todo' || kind === 'done'
 
-            <input
-              ref={(el) => {
-                inputs.current[i] = el
-              }}
-              value={line}
-              readOnly={readOnly}
-              onChange={(e) => {
-                const next = [...lines]
-                next[i] = e.target.value
-                edit(next)
-              }}
-              onKeyDown={(e) => {
-                onKeyDown(e, i)
-              }}
-              placeholder={i === 0 ? 'What happened today…' : ''}
-              className={cn(
-                'min-w-0 flex-1 bg-transparent py-2 text-sm text-text',
-                'placeholder:text-text-3 focus:outline-none'
-              )}
-            />
-
-            {/* The whole point: any line can graduate into a commitment. */}
-            {line.trim() ? (
-              <Tooltip content="Make this a commitment">
+          return (
+            <div key={i} className="group flex items-start gap-2 rounded-md px-1 hover:bg-surface-2">
+              {checkable ? (
                 <button
                   type="button"
+                  disabled={readOnly}
                   onClick={() => {
-                    onPromote(line.trim())
+                    setLine(i, kind === 'done' ? 'todo' : 'done', text)
                   }}
-                  aria-label={`Make a commitment from: ${line.trim()}`}
+                  aria-label={kind === 'done' ? `Uncheck: ${text}` : `Check off: ${text}`}
                   className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded-md',
-                    'text-text-3 transition-colors duration-150',
-                    'hover:bg-accent hover:text-accent-contrast',
-                    // Always visible on touch, where there is no hover to reveal it.
-                    'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100'
+                    'mt-[7px] flex size-[18px] shrink-0 items-center justify-center rounded-full border',
+                    'transition-colors duration-150',
+                    kind === 'done'
+                      ? 'border-accent bg-accent text-accent-contrast'
+                      : 'border-border-strong hover:border-accent'
                   )}
                 >
-                  <Plus className="size-3.5" />
+                  {kind === 'done' ? (
+                    <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
+                      <path
+                        d="M2 6.2 4.6 8.8 10 3.4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : null}
                 </button>
-              </Tooltip>
-            ) : (
-              <span className="size-6 shrink-0" />
-            )}
-          </div>
-        ))
+              ) : (
+                // Keeps text aligned whether or not there's a checkbox.
+                <span className="mt-[7px] size-[18px] shrink-0" aria-hidden />
+              )}
+
+              <input
+                ref={(el) => {
+                  inputs.current[i] = el
+                }}
+                value={text}
+                readOnly={readOnly}
+                onChange={(e) => {
+                  onChange(i, e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  onKeyDown(e, i)
+                }}
+                placeholder={i === 0 ? 'Write the day…' : ''}
+                className={cn(
+                  'min-w-0 flex-1 bg-transparent py-1 focus:outline-none',
+                  'placeholder:text-text-3',
+                  kind === 'heading' && 'text-[17px] font-semibold tracking-tight text-text',
+                  kind === 'text' && 'text-sm text-text',
+                  kind === 'todo' && 'text-sm text-text',
+                  kind === 'done' && 'text-sm text-text-3 line-through'
+                )}
+              />
+
+              {/* Any line can become a tracked commitment with a follow-up. */}
+              {text.trim() && !readOnly ? (
+                <Tooltip content="Track this — due date, follow-up, report back">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onPromote(text.trim())
+                    }}
+                    aria-label={`Make a commitment from: ${text.trim()}`}
+                    className={cn(
+                      'mt-1 flex size-6 shrink-0 items-center justify-center rounded-md',
+                      'text-text-3 transition-colors duration-150',
+                      'hover:bg-accent hover:text-accent-contrast',
+                      'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100'
+                    )}
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
+                </Tooltip>
+              ) : (
+                <span className="size-6 shrink-0" />
+              )}
+            </div>
+          )
+        })
       )}
     </Card>
   )
