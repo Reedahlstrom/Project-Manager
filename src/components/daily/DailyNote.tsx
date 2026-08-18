@@ -28,6 +28,11 @@ import { cn } from '@/lib/utils'
  * a follow-up — so a thought, a task and a thing you owe someone all live in the
  * same place instead of three.
  */
+const NOTE_HEIGHT_KEY = 'alta.note-height'
+const DEFAULT_HEIGHT = 340
+const MIN_HEIGHT = 140
+const MAX_HEIGHT = 1200
+
 export function DailyNote({
   date,
   onDateChange,
@@ -44,6 +49,14 @@ export function DailyNote({
   const save = useSaveDailyNote(date)
 
   const [lines, setLines] = useState<string[]>([''])
+  // How tall the writing area is. Reed sets it by dragging the bottom edge and
+  // it stays that way — a note you have to resize every morning is worse than
+  // one that's the wrong size once.
+  const [height, setHeight] = useState(() => {
+    const saved = Number(localStorage.getItem(NOTE_HEIGHT_KEY))
+    return saved >= MIN_HEIGHT && saved <= MAX_HEIGHT ? saved : DEFAULT_HEIGHT
+  })
+  const body = useRef<HTMLDivElement | null>(null)
   const inputs = useRef<(HTMLTextAreaElement | null)[]>([])
   const dirty = useRef(false)
   const focusNext = useRef<number | null>(null)
@@ -188,6 +201,38 @@ export function DailyNote({
       })
   const empty = lines.length === 1 && lines[0] === ''
 
+  function resizeTo(next: number) {
+    const clamped = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(next)))
+    setHeight(clamped)
+    localStorage.setItem(NOTE_HEIGHT_KEY, String(clamped))
+  }
+
+  /**
+   * Drag the bottom edge to resize.
+   *
+   * Pointer events rather than mouse events so it works with a finger, and
+   * capture so the drag survives the pointer leaving the handle — without it,
+   * moving faster than React re-renders drops the drag.
+   */
+  function onGrab(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault()
+    const handle = e.currentTarget
+    const startY = e.clientY
+    const startHeight = body.current?.offsetHeight ?? height
+    handle.setPointerCapture(e.pointerId)
+
+    const move = (ev: PointerEvent) => {
+      resizeTo(startHeight + (ev.clientY - startY))
+    }
+    const up = () => {
+      handle.releasePointerCapture(e.pointerId)
+      handle.removeEventListener('pointermove', move)
+      handle.removeEventListener('pointerup', up)
+    }
+    handle.addEventListener('pointermove', move)
+    handle.addEventListener('pointerup', up)
+  }
+
   function shift(days: number) {
     const d = fromISO(date)
     d.setDate(d.getDate() + days)
@@ -195,7 +240,7 @@ export function DailyNote({
   }
 
   return (
-    <Card className="px-4 py-4 sm:px-5">
+    <Card className="relative px-4 pt-4 pb-4 sm:px-5">
       <div className="mb-4 flex items-center justify-center gap-1">
         <button
           type="button"
@@ -229,6 +274,19 @@ export function DailyNote({
         </button>
       </div>
 
+      {/* Clicking the empty space below the last line puts the cursor there,
+          the way tapping under the text does in a notes app. */}
+      <div
+        ref={body}
+        style={{ minHeight: `${String(height)}px` }}
+        onMouseDown={(e) => {
+          if (e.target !== e.currentTarget || readOnly) return
+          e.preventDefault()
+          const last = inputs.current[lines.length - 1]
+          last?.focus()
+          last?.setSelectionRange(last.value.length, last.value.length)
+        }}
+      >
       {empty && readOnly ? (
         <p className="px-1 py-2 t-meta">Nothing written this day.</p>
       ) : (
@@ -278,6 +336,7 @@ export function DailyNote({
                   fit(el)
                 }}
                 rows={1}
+                data-note-line
                 value={text}
                 readOnly={readOnly}
                 onChange={(e) => {
@@ -324,6 +383,35 @@ export function DailyNote({
             </div>
           )
         })
+      )}
+      </div>
+
+      {/* The grip. Arrow keys resize too, so it isn't mouse-only. */}
+      {readOnly ? null : (
+        <div
+          role="separator"
+          aria-label="Resize notes — drag, or use the arrow keys"
+          aria-orientation="horizontal"
+          tabIndex={0}
+          onPointerDown={onGrab}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); resizeTo(height + 40) }
+            if (e.key === 'ArrowUp') { e.preventDefault(); resizeTo(height - 40) }
+          }}
+          onDoubleClick={() => { resizeTo(DEFAULT_HEIGHT) }}
+          className={cn(
+            'group absolute inset-x-0 bottom-0 flex h-4 cursor-ns-resize',
+            'touch-none items-center justify-center rounded-b-xl'
+          )}
+        >
+          <span
+            className={cn(
+              'h-1 w-10 rounded-full bg-border-strong/60',
+              'transition-colors duration-150',
+              'group-hover:bg-accent/50 group-focus-visible:bg-accent'
+            )}
+          />
+        </div>
       )}
     </Card>
   )

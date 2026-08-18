@@ -1,5 +1,5 @@
 import { CalendarDays, Inbox, Plus } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
 import { DailyNote } from '@/components/daily/DailyNote'
@@ -9,14 +9,13 @@ import { Page, Section } from '@/components/Page'
 import { CommitmentItem } from '@/components/today/CommitmentItem'
 import { Button } from '@/components/ui/Button'
 import { Card, Row } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
 import {
   partition,
   useCommitments,
   useCompleteCommitment,
   useLogNudge,
 } from '@/hooks/useCommitments'
-import { useAppendLine, useDailyNote } from '@/hooks/useDailyNote'
+import { useDailyNote } from '@/hooks/useDailyNote'
 import { useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
 import { formatEventTime, todayISO } from '@/lib/dates'
@@ -47,7 +46,6 @@ export function Today() {
 
   // Capture writes a line into today's note rather than a bare queue, so the
   // day itself leaves a record instead of just a to-do list.
-  const append = useAppendLine()
   // Which day's note is on screen. Capture always writes to today.
   const [noteDate, setNoteDate] = useState(todayISO())
   const { data: dailyNote } = useDailyNote(noteDate)
@@ -56,14 +54,12 @@ export function Today() {
   const nudge = useLogNudge()
   const dismiss = useDismissInboxItem()
 
-  const [draft, setDraft] = useState('')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<CommitmentRow | undefined>(undefined)
   const [seedTitle, setSeedTitle] = useState<string | undefined>(undefined)
   const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
   // Where the tap happened, so the confetti comes out of the button.
   const [burstFrom, setBurstFrom] = useState<{ x: number; y: number } | undefined>(undefined)
-  const captureRef = useRef<HTMLInputElement>(null)
 
   const projectsById = useMemo(
     () => new Map(projects.map((project) => [project.id, project])),
@@ -101,7 +97,11 @@ export function Today() {
 
       if (event.key === 'c') {
         event.preventDefault()
-        captureRef.current?.focus()
+        // Straight into the note. The last line is where you'd be writing.
+        const lines = document.querySelectorAll<HTMLTextAreaElement>('[data-note-line]')
+        const last = lines[lines.length - 1]
+        last?.focus()
+        last?.setSelectionRange(last.value.length, last.value.length)
         return
       }
       if (event.key === 'j' || event.key === 'k') {
@@ -127,15 +127,6 @@ export function Today() {
     }
   }, [focusable, focusIndex, complete])
 
-  function onCapture(event: React.SyntheticEvent) {
-    event.preventDefault()
-    const text = draft.trim()
-    if (!text) return
-    // Clear first. The field is empty before the request is even sent.
-    setDraft('')
-    append.mutate(text)
-  }
-
   let focusCursor = -1
   const nextFocusIndex = () => {
     focusCursor += 1
@@ -158,26 +149,6 @@ export function Today() {
         </Button>
       }
     >
-      <form onSubmit={onCapture} className="mb-8">
-        <Input
-          ref={captureRef}
-          value={draft}
-          onChange={(event) => {
-            setDraft(event.target.value)
-          }}
-          placeholder="Capture anything…"
-          aria-label="Quick capture"
-          className="h-12 text-[15px] shadow-lift"
-          data-capture-field
-        />
-        {/* Keyboard shortcuts are meaningless on a phone — there is no
-            keyboard until you tap a field, and none of these apply then. */}
-        <p className="mt-1.5 hidden px-1 t-meta sm:block">
-          Press <Key>c</Key> from anywhere · <Key>j</Key>/<Key>k</Key> to move ·{' '}
-          <Key>x</Key> to complete
-        </p>
-      </form>
-
       <Section title="Notes">
         <DailyNote
           date={noteDate}
@@ -414,13 +385,5 @@ function List({
         <Card className="p-1">{items.map(render)}</Card>
       )}
     </Section>
-  )
-}
-
-function Key({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="rounded border border-border px-1 font-sans text-[10px] text-text-3">
-      {children}
-    </kbd>
   )
 }
