@@ -44,7 +44,7 @@ export function DailyNote({
   const save = useSaveDailyNote(date)
 
   const [lines, setLines] = useState<string[]>([''])
-  const inputs = useRef<(HTMLInputElement | null)[]>([])
+  const inputs = useRef<(HTMLTextAreaElement | null)[]>([])
   const dirty = useRef(false)
   const focusNext = useRef<number | null>(null)
 
@@ -57,9 +57,34 @@ export function DailyNote({
 
   useEffect(() => {
     if (focusNext.current === null) return
-    inputs.current[focusNext.current]?.focus()
+    const el = inputs.current[focusNext.current]
+    el?.focus()
+    // Put the caret at the end rather than wherever the browser guesses.
+    el?.setSelectionRange(el.value.length, el.value.length)
     focusNext.current = null
   })
+
+  /** Grow a line to fit its content — the textarea equivalent of wrapping. */
+  function fit(el: HTMLTextAreaElement | null) {
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${String(el.scrollHeight)}px`
+  }
+
+  // Re-fit every line when the text or the viewport changes.
+  useEffect(() => {
+    inputs.current.forEach(fit)
+  }, [lines])
+
+  useEffect(() => {
+    const onResize = () => {
+      inputs.current.forEach(fit)
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
 
   useEffect(() => {
     if (!dirty.current || !profile) return
@@ -110,7 +135,7 @@ export function DailyNote({
     setLine(i, parsed.kind, clean)
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>, i: number) {
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, i: number) {
     const parsed = parseLine(lines[i] ?? '')
 
     if (e.key === 'Enter') {
@@ -170,8 +195,8 @@ export function DailyNote({
   }
 
   return (
-    <Card className="px-3 py-3">
-      <div className="mb-2 flex items-center justify-center gap-1">
+    <Card className="px-4 py-4 sm:px-5">
+      <div className="mb-4 flex items-center justify-center gap-1">
         <button
           type="button"
           onClick={() => { shift(-1) }}
@@ -183,7 +208,7 @@ export function DailyNote({
         <button
           type="button"
           onClick={() => { onDateChange(todayISO()) }}
-          className="min-w-[9rem] text-center t-meta transition-colors duration-150 hover:text-text"
+          className="min-w-[10rem] text-center text-[13px] text-text-3 transition-colors duration-150 hover:text-text"
         >
           {heading}
         </button>
@@ -212,7 +237,7 @@ export function DailyNote({
           const checkable = kind === 'todo' || kind === 'done'
 
           return (
-            <div key={i} className="group flex items-start gap-2 rounded-md px-1 hover:bg-surface-2">
+            <div key={i} className="group flex items-start gap-2.5 rounded-md px-1">
               {checkable ? (
                 <button
                   type="button"
@@ -222,15 +247,15 @@ export function DailyNote({
                   }}
                   aria-label={kind === 'done' ? `Uncheck: ${text}` : `Check off: ${text}`}
                   className={cn(
-                    'mt-[7px] flex size-[18px] shrink-0 items-center justify-center rounded-full border',
-                    'transition-colors duration-150',
+                    'mt-[9px] flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px]',
+                    'transition-all duration-200 ease-out active:scale-90',
                     kind === 'done'
                       ? 'border-accent bg-accent text-accent-contrast'
                       : 'border-border-strong hover:border-accent'
                   )}
                 >
                   {kind === 'done' ? (
-                    <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
+                    <svg viewBox="0 0 12 12" className="size-3" aria-hidden>
                       <path
                         d="M2 6.2 4.6 8.8 10 3.4"
                         fill="none"
@@ -244,29 +269,33 @@ export function DailyNote({
                 </button>
               ) : (
                 // Keeps text aligned whether or not there's a checkbox.
-                <span className="mt-[7px] size-[18px] shrink-0" aria-hidden />
+                <span className="mt-[9px] size-5 shrink-0" aria-hidden />
               )}
 
-              <input
+              <textarea
                 ref={(el) => {
                   inputs.current[i] = el
+                  fit(el)
                 }}
+                rows={1}
                 value={text}
                 readOnly={readOnly}
                 onChange={(e) => {
                   onChange(i, e.target.value)
+                  fit(e.target)
                 }}
                 onKeyDown={(e) => {
                   onKeyDown(e, i)
                 }}
                 placeholder={i === 0 ? 'Write the day…' : ''}
                 className={cn(
-                  'min-w-0 flex-1 bg-transparent py-1 focus:outline-none',
+                  'min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1',
+                  'leading-[1.45] focus:outline-none',
                   'placeholder:text-text-3',
-                  kind === 'heading' && 'text-[17px] font-semibold tracking-tight text-text',
-                  kind === 'text' && 'text-sm text-text',
-                  kind === 'todo' && 'text-sm text-text',
-                  kind === 'done' && 'text-sm text-text-3 line-through'
+                  kind === 'heading' && 'text-[22px] font-semibold tracking-[-0.02em] text-text',
+                  kind === 'text' && 'text-[17px] text-text',
+                  kind === 'todo' && 'text-[17px] text-text',
+                  kind === 'done' && 'text-[17px] text-text-3 line-through decoration-text-3/50'
                 )}
               />
 
@@ -280,7 +309,7 @@ export function DailyNote({
                     }}
                     aria-label={`Make a commitment from: ${text.trim()}`}
                     className={cn(
-                      'mt-1 flex size-6 shrink-0 items-center justify-center rounded-md',
+                      'mt-[5px] flex size-6 shrink-0 items-center justify-center rounded-md',
                       'text-text-3 transition-colors duration-150',
                       'hover:bg-accent hover:text-accent-contrast',
                       'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100'

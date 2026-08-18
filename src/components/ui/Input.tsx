@@ -3,11 +3,14 @@ import type { ComponentPropsWithRef } from 'react'
 import { cn } from '@/lib/utils'
 
 const field = [
-  'w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text',
-  'transition-colors duration-150 ease-out',
+  // White rather than grey: a field you type into should look like paper, and
+  // it separates from the warm page on its border, not on a fill.
+  'w-full rounded-lg border border-border bg-surface-1 px-3 text-sm text-text',
+  'shadow-card transition-[border-color,box-shadow] duration-150 ease-out',
   'placeholder:text-text-3',
   'hover:border-border-strong',
-  'focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent',
+  // A soft halo instead of a hard 1px ring — the focus reads without shouting.
+  'focus:border-accent focus:ring-4 focus:ring-accent/10 focus:outline-none',
   'disabled:opacity-40',
 ].join(' ')
 

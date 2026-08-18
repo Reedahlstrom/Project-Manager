@@ -3,19 +3,22 @@ import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * A surface. Elevation comes from lightness, never shadow — a drop shadow on a
- * near-black background reads as mud.
+ * A surface.
+ *
+ * Depth is a hairline border plus a layered shadow — a tight contact shadow
+ * under the edge and a soft cast below it. One blur alone makes a card look
+ * like it's floating; two make it look like it's resting on the page.
  */
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('rounded-xl border border-border bg-surface-1', className)}
+      className={cn('rounded-xl border border-border bg-surface-1 shadow-card', className)}
       {...props}
     />
   )
 }
 
-/** A single actionable line — a commitment, a person. Hover is a lightness step. */
+/** A single actionable line — a commitment, a person. */
 export function Row({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div

@@ -167,7 +167,7 @@ export function Today() {
           }}
           placeholder="Capture anything…"
           aria-label="Quick capture"
-          className="h-11"
+          className="h-12 text-[15px] shadow-lift"
           data-capture-field
         />
         {/* Keyboard shortcuts are meaningless on a phone — there is no

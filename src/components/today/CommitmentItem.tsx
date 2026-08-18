@@ -63,8 +63,8 @@ export function CommitmentItem({
       ) : owesReport ? (
         // Step one is done. The tick stays filled so the progress is visible,
         // and the row is clearly not finished — because it isn't.
-        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[5px] bg-green text-white">
-          <Check className="size-3" />
+        <span className="mt-px flex size-[18px] shrink-0 items-center justify-center rounded-md bg-green text-white shadow-card">
+          <Check className="size-3.5" />
         </span>
       ) : (
         <Tooltip content="Mark done (x)">
@@ -73,12 +73,13 @@ export function CommitmentItem({
             onClick={onComplete}
             aria-label={`Complete: ${commitment.title}`}
             className={cn(
-              'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[5px] border',
-              'border-border-strong text-transparent transition-colors duration-150 ease-out',
-              'hover:border-accent hover:text-accent'
+              'mt-px flex size-[18px] shrink-0 items-center justify-center rounded-md border-[1.5px]',
+              'border-border-strong text-transparent',
+              'transition-all duration-200 ease-out active:scale-90',
+              'hover:border-accent hover:bg-accent-muted hover:text-accent'
             )}
           >
-            <Check className="size-3" />
+            <Check className="size-3.5" />
           </button>
         </Tooltip>
       )}

@@ -1,6 +1,10 @@
 /* Self-hosted. No external font request — the CSP forbids one, and the PWA has
    to render correctly offline. */
 @import '@fontsource-variable/inter';
+/* One display face, used only for page titles. A serif against clean sans body
+   is what makes this read as considered rather than as a default template —
+   and confined to h1 it costs nothing in legibility where the work happens. */
+@import '@fontsource-variable/fraunces';
 @import 'tailwindcss';
 /* enter/exit utilities (animate-in, fade-in-0, slide-in-from-bottom, …) that
    Radix's data-[state] attributes drive. Tailwind v4 has no built-in equivalent. */
@@ -30,19 +34,23 @@
      surface-2 a card inside a card; input fields; table header rows
      surface-3 hover state for surface-2; popovers and dropdown menus
      surface-4 the highest thing on screen — dialogs, command palette
+
+     The ground is warm, not grey. A cool grey page makes white cards look
+     blue-tinted and the whole thing read as a default admin panel; a warm
+     paper ground makes the same white cards look deliberate and lit.
   */
-  --bg: #f7f8fa;
+  --bg: #faf8f5;
   --surface-1: #ffffff;
-  --surface-2: #f2f4f7;
-  --surface-3: #e8ebf0;
+  --surface-2: #f5f2ed;
+  --surface-3: #ece7df;
   --surface-4: #ffffff;
 
   /* --- Borders ------------------------------------------------------------
      border        the default hairline between regions
      border-strong focused inputs, selected rows, anything asking for attention
   */
-  --border: #e4e7ec;
-  --border-strong: #c4cad4;
+  --border: #e9e4dc;
+  --border-strong: #cec6b9;
 
   /* --- Text ---------------------------------------------------------------
      Three emphasis levels, no more. Every one clears 4.5:1 on --bg and on
@@ -52,9 +60,9 @@
      text-2    body copy, descriptions, labels
      text-3    metadata — timestamps, counts, helper text, placeholders
   */
-  --text: #14171c;
-  --text-2: #4a515e;
-  --text-3: #667085;
+  --text: #1a1815;
+  --text-2: #55504a;
+  --text-3: #857e74;
 
   /* --- Accent -------------------------------------------------------------
      Exactly one. Used for the primary action, the focus ring, and the active
@@ -64,14 +72,21 @@
      Darker than the dark-theme accent was: white text on it has to clear 4.5:1,
      and a lighter blue does not.
   */
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
+  --accent: #2f4858;
+  --accent-hover: #223642;
   --accent-contrast: #ffffff;
-  --accent-muted: #2563eb14;
+  --accent-muted: #2f485814;
+  /* The top edge of a filled button, so it catches light like a real object. */
+  --accent-sheen: #3d5a6c;
 
   /* Floating surfaces need a real shadow on light, not a luminance step. */
-  --shadow-pop: 0 4px 12px -2px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.06);
-  --shadow-modal: 0 20px 40px -8px rgb(16 24 40 / 0.18), 0 8px 16px -8px rgb(16 24 40 / 0.1);
+  --shadow-pop: 0 4px 12px -2px rgb(60 46 30 / 0.09), 0 2px 4px -2px rgb(60 46 30 / 0.05);
+  --shadow-modal: 0 24px 48px -12px rgb(60 46 30 / 0.2), 0 8px 16px -8px rgb(60 46 30 / 0.1);
+  /* Layered rather than one blur: a hairline contact shadow plus a soft cast
+     is what makes a card sit ON the page instead of hovering above it. */
+  --shadow-card: 0 1px 2px rgb(60 46 30 / 0.05), 0 1px 1px rgb(60 46 30 / 0.03);
+  --shadow-lift: 0 4px 10px -3px rgb(60 46 30 / 0.1), 0 2px 4px -2px rgb(60 46 30 / 0.05);
+  --shadow-button: inset 0 1px 0 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(60 46 30 / 0.16);
 
   /* --- Status -------------------------------------------------------------
      Project health and commitment state. Muted on purpose: saturated status
@@ -80,12 +95,12 @@
 
      Each has a -bg tint for badge backgrounds.
   */
-  --green: #4ca97a;
-  --green-bg: #4ca97a1f;
-  --amber: #d1a04a;
-  --amber-bg: #d1a04a1f;
-  --red: #dd6159;
-  --red-bg: #dd61591f;
+  --green: #4a8f6a;
+  --green-bg: #4a8f6a1c;
+  --amber: #b8873c;
+  --amber-bg: #b8873c1c;
+  --red: #c25549;
+  --red-bg: #c255491c;
 
   /* --- Typography ---------------------------------------------------------
      Inter is loaded and the full scale is set in prompt 3. Tabular numerals
@@ -95,10 +110,11 @@
   --font-sans:
     'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     Roboto, sans-serif;
+  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* --- Geometry -----------------------------------------------------------  */
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
   /* --- Motion -------------------------------------------------------------
      150-250ms ease-out. Applied to state changes and things that genuinely
@@ -142,7 +158,13 @@
   --color-red-bg: var(--red-bg);
 
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
+  --shadow-button: var(--shadow-button);
+  --shadow-pop: var(--shadow-pop);
 
   --radius-DEFAULT: var(--radius);
 }
@@ -196,19 +218,23 @@
      .t-meta     timestamps, counts, helper text
   */
   .t-page {
-    font-size: 1.5rem;
-    line-height: 1.15;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    line-height: 1.1;
     font-weight: 600;
-    letter-spacing: -0.021em;
+    font-variation-settings: 'SOFT' 20, 'WONK' 0, 'opsz' 40;
+    letter-spacing: -0.014em;
     color: var(--text);
     text-wrap: balance;
   }
 
+  /* Quieter than it was. A section label is a signpost, not a headline — at
+     full weight and full caps every one competed with the work underneath. */
   .t-section {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     line-height: 1.2;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-3);
   }
