@@ -5,6 +5,7 @@ import { DateInput, Input, Textarea } from '@/components/ui/Input'
 import { Label, Select } from '@/components/ui/Select'
 import { Sheet } from '@/components/ui/Dialog'
 import { usePeople, useProjects } from '@/hooks/useProjects'
+import { useAuth } from '@/contexts/auth-context'
 import { useSaveCommitment } from '@/hooks/useCommitments'
 import { defaultFollowUp, todayISO } from '@/lib/dates'
 import type { CommitmentRow, CommitmentStatus, OwnerType } from '@/types/models'
@@ -31,6 +32,7 @@ export function CommitmentSheet({
   defaultProjectId,
   initialTitle,
   initialDetail,
+  sourceDailyNoteId,
   onSaved,
 }: {
   open: boolean
@@ -40,11 +42,14 @@ export function CommitmentSheet({
   defaultProjectId?: string | undefined
   initialTitle?: string | undefined
   initialDetail?: string | undefined
+  /** Set when this came from a line in a daily note, so the two stay linked. */
+  sourceDailyNoteId?: string | undefined
   onSaved?: (() => void) | undefined
 }) {
   const { data: projects = [] } = useProjects()
   const { data: people = [] } = usePeople()
   const save = useSaveCommitment()
+  const { profile } = useAuth()
 
   const [title, setTitle] = useState('')
   const [detail, setDetail] = useState('')
@@ -110,6 +115,11 @@ export function CommitmentSheet({
         due_date: dueDate || null,
         follow_up_date: followUp || null,
         status,
+        // Both were columns nobody wrote to: who made it, and which line it
+        // came from. Without the second, promoting a note line severs the link
+        // to the thing that prompted it.
+        ...(commitment ? {} : { created_by: profile?.id ?? null }),
+        ...(sourceDailyNoteId ? { source_daily_note_id: sourceDailyNoteId } : {}),
       },
       {
         onSuccess: () => {

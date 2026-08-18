@@ -2,6 +2,7 @@ import { CalendarDays, Inbox, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
+import { DailyNote } from '@/components/daily/DailyNote'
 import { ReportBackSheet } from '@/components/commitments/ReportBackSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { Page, Section } from '@/components/Page'
@@ -9,14 +10,14 @@ import { CommitmentItem } from '@/components/today/CommitmentItem'
 import { Button } from '@/components/ui/Button'
 import { Card, Row } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
-import { useAuth } from '@/contexts/auth-context'
 import {
   partition,
   useCommitments,
   useCompleteCommitment,
   useLogNudge,
 } from '@/hooks/useCommitments'
-import { useCapture, useDismissInboxItem, useInbox } from '@/hooks/useInbox'
+import { useAppendLine, useDailyNote } from '@/hooks/useDailyNote'
+import { useDismissInboxItem, useInbox } from '@/hooks/useInbox'
 import { useProjects, useUpcomingEvents } from '@/hooks/useProjects'
 import { formatEventTime } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
@@ -39,13 +40,16 @@ import type { CommitmentRow } from '@/types/models'
  * doesn't cost six screens of scrolling to discover there's nothing to do.
  */
 export function Today() {
-  const { session } = useAuth()
   const { data: commitments = [], isLoading } = useCommitments()
   const { data: projects = [] } = useProjects()
   const { data: inbox = [] } = useInbox()
   const { data: events = [] } = useUpcomingEvents()
 
-  const capture = useCapture(session?.user.id)
+  // Capture writes a line into today's note rather than a bare queue, so the
+  // day itself leaves a record instead of just a to-do list.
+  const append = useAppendLine()
+  const { data: dailyNote } = useDailyNote()
+  const [fromNote, setFromNote] = useState(false)
   const complete = useCompleteCommitment()
   const nudge = useLogNudge()
   const dismiss = useDismissInboxItem()
@@ -127,7 +131,7 @@ export function Today() {
     if (!text) return
     // Clear first. The field is empty before the request is even sent.
     setDraft('')
-    capture.mutate(text)
+    append.mutate(text)
   }
 
   let focusCursor = -1
@@ -171,6 +175,18 @@ export function Today() {
           <Key>x</Key> to complete
         </p>
       </form>
+
+      <Section title="Today's notes">
+        <DailyNote
+          onPromote={(line) => {
+            setFromNote(true)
+            openNew(line)
+          }}
+        />
+        <p className="mt-1.5 px-3 t-meta">
+          Enter for a new line. Tap + on any line to make it a commitment.
+        </p>
+      </Section>
 
       {isLoading ? (
         <p className="t-meta px-3">Loading…</p>
@@ -363,8 +379,10 @@ export function Today() {
         onOpenChange={setSheetOpen}
         commitment={editing}
         initialTitle={seedTitle}
+        {...(fromNote && dailyNote ? { sourceDailyNoteId: dailyNote.id } : {})}
         onSaved={() => {
           setSeedTitle(undefined)
+          setFromNote(false)
         }}
       />
     </Page>

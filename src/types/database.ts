@@ -200,6 +200,7 @@ export type Database = {
           requested_by: Database["public"]["Enums"]["owner_type"] | null
           requested_by_person_id: string | null
           source: Database["public"]["Enums"]["commitment_source"]
+          source_daily_note_id: string | null
           source_note_id: string | null
           status: Database["public"]["Enums"]["commitment_status"]
           title: string
@@ -229,6 +230,7 @@ export type Database = {
           requested_by?: Database["public"]["Enums"]["owner_type"] | null
           requested_by_person_id?: string | null
           source?: Database["public"]["Enums"]["commitment_source"]
+          source_daily_note_id?: string | null
           source_note_id?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           title: string
@@ -258,6 +260,7 @@ export type Database = {
           requested_by?: Database["public"]["Enums"]["owner_type"] | null
           requested_by_person_id?: string | null
           source?: Database["public"]["Enums"]["commitment_source"]
+          source_daily_note_id?: string | null
           source_note_id?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           title?: string
@@ -307,10 +310,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "commitments_source_daily_note_id_fkey"
+            columns: ["source_daily_note_id"]
+            isOneToOne: false
+            referencedRelation: "daily_notes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "commitments_source_note_id_fkey"
             columns: ["source_note_id"]
             isOneToOne: false
             referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_notes: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          note_date: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: string
+          created_at?: string
+          id?: string
+          note_date: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          note_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1114,6 +1159,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      append_to_daily_note: {
+        Args: { p_date?: string; p_line: string }
+        Returns: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          note_date: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_notes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       can_access_project: { Args: { p_project_id: string }; Returns: boolean }
       current_user_role: {
         Args: never

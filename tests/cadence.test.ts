@@ -43,6 +43,7 @@ function commitment(overrides: Partial<CommitmentRow> = {}): CommitmentRow {
     confirmed_by: null,
     confirmed_in_app: false,
     confirmation_note: null,
+    source_daily_note_id: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
