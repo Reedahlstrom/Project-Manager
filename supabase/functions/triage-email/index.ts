@@ -24,6 +24,7 @@ import {
   claim,
   json,
   mailboxOwnerId,
+  preflight,
   recordDecision,
   release,
   serviceClient,
@@ -111,7 +112,10 @@ async function askModel(from: string, subject: string, body: string | null) {
   return { flag: verdict.trim().toUpperCase().startsWith('YES'), reason: rest.join(' ').trim() }
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const pre = preflight(req)
+  if (pre) return pre
+
   const db = serviceClient()
   const started = new Date().toISOString()
   const includeBody = Deno.env.get('EMAIL_TRIAGE_INCLUDE_BODY') === 'true'

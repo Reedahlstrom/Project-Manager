@@ -60,14 +60,11 @@ export function Scorecard() {
       (c) => c.status === 'done' && c.requested_by !== null && c.reported_back_at === null
     ).length
 
-    const unconfirmed = commitments.filter(
-      (c) => c.reported_back_at !== null && c.confirmed_at === null
-    ).length
-
-    // The number that actually measures the cadence: of everything you owed
-    // someone, how much came back confirmed. Reporting alone doesn't count.
+    // Of everything finished that someone was waiting on, how much did Reed
+    // actually go back and tell them. Reporting is the discipline being
+    // measured — nobody else has to sign it off.
     const owed = commitments.filter((c) => c.requested_by !== null && c.status === 'done')
-    const confirmed = owed.filter((c) => c.confirmed_at !== null)
+    const told = owed.filter((c) => c.reported_back_at !== null)
 
     return {
       onTimeRate: closedThisQuarter.length
@@ -77,8 +74,7 @@ export function Scorecard() {
       paulOverdue,
       unchased,
       unreported,
-      unconfirmed,
-      closedRate: owed.length ? Math.round((confirmed.length / owed.length) * 100) : null,
+      closedRate: owed.length ? Math.round((told.length / owed.length) * 100) : null,
       owedCount: owed.length,
     }
   }, [commitments])
@@ -133,14 +129,14 @@ export function Scorecard() {
           note="Past the chase date with no nudge logged."
         />
         <Stat
-          label="Loops actually closed"
+          label="Reported back"
           value={stats.closedRate === null ? '—' : `${String(stats.closedRate)}%`}
           target="Target 100%"
           good={stats.closedRate === null || stats.closedRate >= 90}
           note={
             stats.owedCount === 0
               ? 'Nothing owed to anyone yet.'
-              : `${String(stats.owedCount)} finished for someone · confirmed by them, not by you`
+              : `${String(stats.owedCount)} finished for someone`
           }
         />
         <Stat
@@ -149,13 +145,6 @@ export function Scorecard() {
           target="Target 0"
           good={stats.unreported === 0}
           note="Done, but the person who asked doesn't know. Your move."
-        />
-        <Stat
-          label="Waiting on a yes"
-          value={String(stats.unconfirmed)}
-          target="—"
-          good={true}
-          note="Reported and unanswered. Their move, but still an open loop."
         />
         <Stat
           label="Paul overdue"
@@ -169,7 +158,7 @@ export function Scorecard() {
       {openLoops.length > 0 ? (
         <section className="mb-7">
           <div className="mb-2 flex items-baseline gap-2 px-1">
-            <h2 className="t-section text-accent">Waiting on a report from you</h2>
+            <h2 className="t-section text-accent">Still to report</h2>
             <span className="t-meta tabular-nums">{openLoops.length}</span>
           </div>
           <Card className="border-accent/30 bg-accent-muted p-1">

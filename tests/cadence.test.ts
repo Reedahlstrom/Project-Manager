@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { loopState, partition } from '@/lib/commitment-lists'
+import { partition } from '@/lib/commitment-lists'
 import { addBusinessDays, defaultFollowUp, isOverdue, toISO, todayISO } from '@/lib/dates'
 import type { CommitmentRow } from '@/types/models'
 
@@ -44,6 +44,7 @@ function commitment(overrides: Partial<CommitmentRow> = {}): CommitmentRow {
     confirmed_in_app: false,
     confirmation_note: null,
     source_daily_note_id: null,
+    source_meeting_id: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     ...overrides,
@@ -134,44 +135,25 @@ describe('Report back — we owe someone', () => {
   })
 })
 
-describe('The loop is not closed until they say so', () => {
-  const NOW = new Date().toISOString()
-
-  it('self-directed work owes nobody a report', () => {
-    expect(loopState(commitment({ status: 'done', requested_by: null }))).toBe('not-owed')
+describe('Report back — you owe someone an update', () => {
+  it('appears once done and someone asked', () => {
+    const rows = [commitment({ status: 'done', requested_by: 'paul' })]
+    expect(partition(rows).reportBack).toHaveLength(1)
   })
 
-  it('done but untold is yours to act on', () => {
-    expect(loopState(commitment({ status: 'done', requested_by: 'paul' }))).toBe('to-report')
-  })
-
-  it('reported is NOT closed — it is waiting on them', () => {
-    // The distinction this whole feature exists for. Reporting is something
-    // Reed sets about himself; on its own it proves nothing.
-    const c = commitment({ status: 'done', requested_by: 'paul', reported_back_at: NOW })
-    expect(loopState(c)).toBe('awaiting')
-    expect(partition([c]).awaitingConfirmation).toHaveLength(1)
-    expect(partition([c]).reportBack).toEqual([])
-  })
-
-  it('closes only when they confirm', () => {
-    const c = commitment({
-      status: 'done',
-      requested_by: 'paul',
-      reported_back_at: NOW,
-      confirmed_at: NOW,
-    })
-    expect(loopState(c)).toBe('closed')
-    expect(partition([c]).awaitingConfirmation).toEqual([])
-  })
-
-  it('puts the longest-unanswered report first', () => {
-    const old = new Date(Date.now() - 7 * 86_400_000).toISOString()
+  it('clears once you have told them', () => {
     const rows = [
-      commitment({ title: 'recent', status: 'done', requested_by: 'paul', reported_back_at: NOW }),
-      commitment({ title: 'stale', status: 'done', requested_by: 'paul', reported_back_at: old }),
+      commitment({
+        status: 'done',
+        requested_by: 'paul',
+        reported_back_at: new Date().toISOString(),
+      }),
     ]
-    expect(partition(rows).awaitingConfirmation.map((r) => r.title)).toEqual(['stale', 'recent'])
+    expect(partition(rows).reportBack).toEqual([])
+  })
+
+  it('never appears for self-directed work', () => {
+    expect(partition([commitment({ status: 'done', requested_by: null })]).reportBack).toEqual([])
   })
 })
 

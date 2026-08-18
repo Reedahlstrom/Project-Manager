@@ -10,7 +10,7 @@
  * Unmatched meetings are not discarded. They go to the inbox, where you file
  * them in a tap and can teach the router with a rule.
  */
-import { accessToken, json, mailboxOwnerId, serviceClient } from '../_shared/google.ts'
+import { accessToken, json, mailboxOwnerId, preflight, serviceClient } from '../_shared/google.ts'
 
 type GEvent = {
   id: string
@@ -52,7 +52,10 @@ function route(event: GEvent, rules: Rule[]): string | null {
   return null
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const pre = preflight(req)
+  if (pre) return pre
+
   const db = serviceClient()
   const started = new Date().toISOString()
 

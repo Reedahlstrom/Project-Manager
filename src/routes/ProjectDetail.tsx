@@ -1,9 +1,10 @@
-import { ArrowLeft, CalendarDays, Lock, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarDays, FileAudio, Lock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { CommitmentSheet } from '@/components/commitments/CommitmentSheet'
 import { ReportBackSheet } from '@/components/commitments/ReportBackSheet'
+import { MeetingSheet } from '@/components/meetings/MeetingSheet'
 import { DocumentsSection } from '@/components/projects/DocumentsSection'
 import { DoneList } from '@/components/projects/DoneList'
 import { EventSheet } from '@/components/projects/EventSheet'
@@ -17,6 +18,7 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { useAuth } from '@/contexts/auth-context'
 import { useCommitments, useCompleteCommitment } from '@/hooks/useCommitments'
 import { useDeleteNote, useProjectNotes, useSaveNote } from '@/hooks/useNotes'
+import { useProjectMeetings, type Meeting } from '@/hooks/useMeetings'
 import { useFutureEvents, useProjects } from '@/hooks/useProjects'
 import { formatEventTime, todayISO } from '@/lib/dates'
 import type { CommitmentRow, EventRow, NoteRow } from '@/types/models'
@@ -36,6 +38,7 @@ export function ProjectDetail() {
   const { data: allCommitments = [] } = useCommitments()
   const { data: events = [] } = useFutureEvents()
   const { data: notes = [] } = useProjectNotes(project?.id)
+  const { data: meetings = [] } = useProjectMeetings(project?.id)
   const complete = useCompleteCommitment()
 
   const [projectSheet, setProjectSheet] = useState(false)
@@ -45,6 +48,8 @@ export function ProjectDetail() {
   const [seedDetail, setSeedDetail] = useState<string | undefined>(undefined)
   const [reporting, setReporting] = useState<CommitmentRow | undefined>(undefined)
   const [eventSheet, setEventSheet] = useState(false)
+  const [meetingSheet, setMeetingSheet] = useState(false)
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | undefined>(undefined)
   const [editingEvent, setEditingEvent] = useState<EventRow | undefined>(undefined)
 
   const commitments = useMemo(
@@ -223,10 +228,59 @@ export function ProjectDetail() {
         </div>
       </Section>
 
+      <Section title="Meetings" count={meetings.length}>
+        {meetings.length === 0 ? (
+          <p className="px-3 t-meta">No meeting notes filed here yet.</p>
+        ) : (
+          <Card className="p-1">
+            {meetings.map((m) => (
+              <Row
+                key={m.id}
+                className="cursor-pointer items-center"
+                onClick={() => {
+                  setEditingMeeting(m)
+                  setMeetingSheet(true)
+                }}
+              >
+                <FileAudio className="size-4 shrink-0 text-text-3" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="t-item line-clamp-2 text-pretty">{m.title}</p>
+                  <p className="t-meta">
+                    {new Date(m.met_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    {m.summary ? ` · ${m.summary.slice(0, 60)}` : ''}
+                  </p>
+                </div>
+              </Row>
+            ))}
+          </Card>
+        )}
+        <div className="mt-2 px-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEditingMeeting(undefined)
+              setMeetingSheet(true)
+            }}
+          >
+            <Plus />
+            Add meeting notes
+          </Button>
+        </div>
+      </Section>
+
       <Section title="Documents">
         <DocumentsSection projectId={project.id} />
       </Section>
 
+      <MeetingSheet
+        open={meetingSheet}
+        onOpenChange={setMeetingSheet}
+        meeting={editingMeeting}
+      />
       <ReportBackSheet
         open={reporting !== undefined}
         onOpenChange={(o) => {

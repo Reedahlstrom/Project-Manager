@@ -120,9 +120,31 @@ export async function release(db: SupabaseClient, source: string, externalId: st
   await db.from('processed_messages').delete().eq('source', source).eq('external_id', externalId)
 }
 
+/**
+ * CORS. Without these a browser call fails at preflight with an opaque
+ * "Failed to send a request to the Edge Function" — which is what happened to
+ * the Settings sync buttons and the meeting extractor. curl never sends a
+ * preflight, so testing with curl alone hides this completely.
+ *
+ * The app is behind Cloudflare Access and every function still verifies its
+ * JWT, so the permissive origin costs nothing: a caller needs a valid key
+ * regardless of where the request came from.
+ */
+export const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+}
+
+/** Answer the preflight. Call this first in every handler. */
+export function preflight(req: Request): Response | null {
+  return req.method === 'OPTIONS' ? new Response('ok', { headers: CORS }) : null
+}
+
 export function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...CORS, 'Content-Type': 'application/json' },
   })
 }

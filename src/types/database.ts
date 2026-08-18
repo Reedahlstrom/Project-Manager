@@ -201,6 +201,7 @@ export type Database = {
           requested_by_person_id: string | null
           source: Database["public"]["Enums"]["commitment_source"]
           source_daily_note_id: string | null
+          source_meeting_id: string | null
           source_note_id: string | null
           status: Database["public"]["Enums"]["commitment_status"]
           title: string
@@ -231,6 +232,7 @@ export type Database = {
           requested_by_person_id?: string | null
           source?: Database["public"]["Enums"]["commitment_source"]
           source_daily_note_id?: string | null
+          source_meeting_id?: string | null
           source_note_id?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           title: string
@@ -261,6 +263,7 @@ export type Database = {
           requested_by_person_id?: string | null
           source?: Database["public"]["Enums"]["commitment_source"]
           source_daily_note_id?: string | null
+          source_meeting_id?: string | null
           source_note_id?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           title?: string
@@ -314,6 +317,13 @@ export type Database = {
             columns: ["source_daily_note_id"]
             isOneToOne: false
             referencedRelation: "daily_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitments_source_meeting_id_fkey"
+            columns: ["source_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
           {
@@ -746,6 +756,72 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      meetings: {
+        Row: {
+          attendees: string | null
+          author_id: string | null
+          auto_routed: boolean
+          created_at: string
+          deleted_at: string | null
+          extracted_at: string | null
+          id: string
+          met_at: string
+          project_id: string | null
+          source: string | null
+          summary: string | null
+          title: string
+          transcript: string
+          updated_at: string
+        }
+        Insert: {
+          attendees?: string | null
+          author_id?: string | null
+          auto_routed?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          extracted_at?: string | null
+          id?: string
+          met_at?: string
+          project_id?: string | null
+          source?: string | null
+          summary?: string | null
+          title: string
+          transcript?: string
+          updated_at?: string
+        }
+        Update: {
+          attendees?: string | null
+          author_id?: string | null
+          auto_routed?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          extracted_at?: string | null
+          id?: string
+          met_at?: string
+          project_id?: string | null
+          source?: string | null
+          summary?: string | null
+          title?: string
+          transcript?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       milestones: {
         Row: {

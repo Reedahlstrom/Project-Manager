@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { useAuth } from '@/contexts/auth-context'
 import { NotFound } from '@/routes/NotFound'
-import { Paul } from '@/routes/Paul'
+import { Meetings } from '@/routes/Meetings'
 import { People } from '@/routes/People'
 import { Playbook } from '@/routes/Playbook'
 import { ProjectDetail } from '@/routes/ProjectDetail'
@@ -48,7 +48,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="/today" element={<Today />} />
-        <Route path="/paul" element={<Paul />} />
+        <Route path="/meetings" element={<Meetings />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:slug" element={<ProjectDetail />} />
         <Route path="/people" element={<People />} />

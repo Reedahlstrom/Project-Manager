@@ -147,55 +147,6 @@ export function useReportBack() {
   )
 }
 
-/**
- * "It is good." — the act that actually closes the loop.
- *
- * `inApp` records whether the requester confirmed it themselves or whether Reed
- * logged a confirmation given in person. Most will be the latter, and the
- * difference between "Paul confirmed" and "Reed says Paul confirmed" is worth
- * keeping honest.
- */
-export function useConfirmCommitment() {
-  return useCommitmentMutation(
-    async ({
-      id,
-      note,
-      byId,
-      inApp,
-      undo,
-    }: {
-      id: string
-      note?: string | null
-      byId?: string | null
-      inApp: boolean
-      undo?: boolean
-    }) => {
-      const { error } = await supabase
-        .from('commitments')
-        .update({
-          confirmed_at: undo ? null : new Date().toISOString(),
-          confirmed_by: undo ? null : (byId ?? null),
-          confirmed_in_app: undo ? false : inApp,
-          confirmation_note: undo ? null : (note?.trim() || null),
-        })
-        .eq('id', id)
-      if (error) throw error
-    },
-    (rows, { id, note, byId, inApp, undo }) =>
-      rows.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              confirmed_at: undo ? null : new Date().toISOString(),
-              confirmed_by: undo ? null : (byId ?? null),
-              confirmed_in_app: undo ? false : inApp,
-              confirmation_note: undo ? null : (note?.trim() || null),
-            }
-          : row
-      )
-  )
-}
-
 export function useSaveCommitment() {
   const queryClient = useQueryClient()
 
